@@ -1,0 +1,5 @@
+# Caddy terminates TLS and proxies to the Node server.
+# Certificates are obtained and renewed automatically (Let's Encrypt).
+my-server.example.org {
+    reverse_proxy localhost:8080
+}
