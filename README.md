@@ -40,6 +40,18 @@ docker compose up -d
 
 The compose file runs the server against a Postgres instance (`DB_DIALECT=postgres`). TLS is still Caddy's job, on the host or as an extra service.
 
+### Verifying a deployment
+
+Once `docker compose up -d` is up, run the end-to-end scenario against it from `organic-webserver/organic-webserver` (the sibling checkout, not inside the container):
+
+```bash
+E2E_BASE_URL=http://localhost:8080 npm run e2e
+```
+
+It walks through genesis, daily money creation (with catch-up), an online payment, a paper bill, and the two rejections that guard against fraud (a replayed transaction, a paper cashed twice) — printing a PASS/FAIL summary per step and exiting non-zero on any failure. The API rate limiter is active in this deployment (no `NODE_ENV=test` override), so a run can pause for up to a minute mid-way while it backs off and retries — that's expected, not a hang.
+
+Run it against a fresh database (`docker compose down -v` first) or don't worry about it — each run generates unique emails, so a persistent database doesn't cause collisions.
+
 ## License
 
 MIT — © suipotryot
