@@ -125,7 +125,26 @@ journalctl -u organic-webserver -f          # logs en direct
 
 ## 8. Un nom d'hôte public (DuckDNS)
 
-Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sous-domaine gratuit (`<nom>.duckdns.org`) avec une mise à jour d'IP dynamique intégrée. Créer un compte, réserver un nom, puis lancer leur script de mise à jour sur un intervalle régulier (un timer systemd toutes les 5 minutes est plus fiable qu'un simple cron) pour qu'il reste pointé sur ton IP domicile à chaque changement.
+Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sous-domaine gratuit (`<nom>.duckdns.org`) avec une mise à jour d'IP dynamique intégrée.
+
+1. Se connecter sur [duckdns.org](https://www.duckdns.org) et réserver un sous-domaine (ex. `ma-monnaie-de-quartier` → `ma-monnaie-de-quartier.duckdns.org`). Noter le **token** affiché sur la page du compte.
+2. Sur le Pi, depuis ton propre compte (pas `organic`) — pas besoin de `sudo` ici, `~/duckdns` est dans ton propre home :
+   ```bash
+   mkdir ~/duckdns && cd ~/duckdns
+   echo url="https://www.duckdns.org/update?domains=<ton-sous-domaine>&token=<ton-token>&ip=" > duck.sh
+   chmod 700 duck.sh
+   ./duck.sh
+   cat duck.log   # doit afficher "OK"
+   ```
+3. Planifier une exécution toutes les 5 minutes pour suivre les changements d'IP domicile :
+   ```bash
+   crontab -e
+   ```
+   ajouter :
+   ```
+   */5 * * * * ~/duckdns/duck.sh >/dev/null 2>&1
+   ```
+   (Un timer systemd est plus robuste que cron si tu veux aller plus loin, mais cron est largement suffisant ici.)
 
 ## 9. Redirection de port
 

@@ -125,7 +125,26 @@ journalctl -u organic-webserver -f          # live logs
 
 ## 8. A public hostname (DuckDNS)
 
-No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain (`<name>.duckdns.org`) with a built-in dynamic-IP updater. Create an account, reserve a name, then run their update script on a schedule (a systemd timer every 5 minutes is more reliable than plain cron) to keep it pointed at your home IP as it changes.
+No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain (`<name>.duckdns.org`) with a built-in dynamic-IP updater.
+
+1. Sign in on [duckdns.org](https://www.duckdns.org) and reserve a subdomain (e.g. `my-neighborhood-currency` → `my-neighborhood-currency.duckdns.org`). Note the **token** shown on your account page.
+2. On the Pi, in your own (non-`organic`) account — no `sudo` needed here, `~/duckdns` is your own home directory:
+   ```bash
+   mkdir ~/duckdns && cd ~/duckdns
+   echo url="https://www.duckdns.org/update?domains=<your-subdomain>&token=<your-token>&ip=" > duck.sh
+   chmod 700 duck.sh
+   ./duck.sh
+   cat duck.log   # should print "OK"
+   ```
+3. Schedule it to run every 5 minutes so it keeps tracking your home IP as it changes:
+   ```bash
+   crontab -e
+   ```
+   add:
+   ```
+   */5 * * * * ~/duckdns/duck.sh >/dev/null 2>&1
+   ```
+   (A systemd timer is more robust than cron if you want to go further, but cron is plenty reliable for this.)
 
 ## 9. Port forwarding
 
