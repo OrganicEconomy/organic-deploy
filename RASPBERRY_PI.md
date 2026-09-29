@@ -20,8 +20,30 @@ sudo dpkg-reconfigure unattended-upgrades   # keep security patches current auto
 
 ## 2. Network
 
-- Reserve a fixed local IP for the Pi in your router (DHCP reservation by MAC address) — do this before setting up port forwarding, or it'll break on the next DHCP lease renewal.
-- Switch SSH to key-only auth: copy your public key, then set `PasswordAuthentication no` in `/etc/ssh/sshd_config` and `sudo systemctl restart ssh`.
+- **Reserve a fixed local IP for the Pi in your router** (DHCP reservation by MAC address) — do this before setting up port forwarding, or it'll break on the next DHCP lease renewal. Get the Pi's current IP and MAC address first:
+  ```bash
+  hostname -I
+  ip link show | grep -A1 "eth0\|wlan0"
+  ```
+  Then reserve that MAC's IP in your router's admin interface (often `192.168.1.1` or `192.168.0.1`).
+
+- **Switch SSH to key-only auth.** If you don't have an SSH key pair yet, generate one on the machine you'll connect *from* (not the Pi): `ssh-keygen -t ed25519`. Then copy the public key to the Pi.
+
+  On macOS/Linux:
+  ```bash
+  ssh-copy-id pi@<pi-ip>
+  ```
+  On Windows (PowerShell — `ssh-copy-id` isn't available by default):
+  ```powershell
+  type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh pi@<pi-ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+  ```
+  Reconnect once to confirm key-based login works, *then* disable password auth on the Pi:
+  ```bash
+  sudo nano /etc/ssh/sshd_config
+  # set: PasswordAuthentication no
+  sudo systemctl restart ssh
+  ```
+
 - **Don't forward the SSH port (22) to the internet.** Only 80 and 443 need to be reachable from outside — administer the Pi from the local network (or a VPN) instead.
 
 ## 3. Firewall

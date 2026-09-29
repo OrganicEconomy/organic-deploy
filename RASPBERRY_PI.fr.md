@@ -20,8 +20,30 @@ sudo dpkg-reconfigure unattended-upgrades   # maintient les correctifs de sécur
 
 ## 2. Réseau
 
-- Réserver une IP locale fixe pour le Pi dans le routeur (réservation DHCP par adresse MAC) — à faire avant de configurer la redirection de port, sinon elle casse au prochain renouvellement de bail DHCP.
-- Passer SSH en authentification par clé uniquement : copier sa clé publique, puis mettre `PasswordAuthentication no` dans `/etc/ssh/sshd_config` et `sudo systemctl restart ssh`.
+- **Réserver une IP locale fixe pour le Pi dans le routeur** (réservation DHCP par adresse MAC) — à faire avant de configurer la redirection de port, sinon elle casse au prochain renouvellement de bail DHCP. Récupérer d'abord l'IP et l'adresse MAC actuelles du Pi :
+  ```bash
+  hostname -I
+  ip link show | grep -A1 "eth0\|wlan0"
+  ```
+  Puis réserver l'IP de cette MAC dans l'interface d'admin du routeur (souvent `192.168.1.1` ou `192.168.0.1`).
+
+- **Passer SSH en authentification par clé uniquement.** Si tu n'as pas encore de paire de clés SSH, en générer une sur la machine depuis laquelle tu te connectes (pas sur le Pi) : `ssh-keygen -t ed25519`. Puis copier la clé publique sur le Pi.
+
+  Sous macOS/Linux :
+  ```bash
+  ssh-copy-id pi@<ip-du-pi>
+  ```
+  Sous Windows (PowerShell — `ssh-copy-id` n'est pas disponible par défaut) :
+  ```powershell
+  type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh pi@<ip-du-pi> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+  ```
+  Se reconnecter une fois pour confirmer que la connexion par clé fonctionne, *puis seulement* désactiver l'authentification par mot de passe sur le Pi :
+  ```bash
+  sudo nano /etc/ssh/sshd_config
+  # mettre : PasswordAuthentication no
+  sudo systemctl restart ssh
+  ```
+
 - **Ne pas rediriger le port SSH (22) vers l'extérieur.** Seuls 80 et 443 doivent être joignables depuis internet — administrer le Pi depuis le réseau local (ou via un VPN) à la place.
 
 ## 3. Pare-feu
