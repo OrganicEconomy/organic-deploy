@@ -48,17 +48,9 @@ sudo dpkg-reconfigure unattended-upgrades   # maintient les correctifs de sécur
 
 ## 3. Pare-feu
 
-Trouver d'abord ton sous-réseau LAN réel :
-
-```bash
-ip -4 addr show
-```
-
-Repérer l'interface active (`wlan0` ou `eth0`) — une ligne du type `inet 192.168.1.42/24 ...` signifie que ton sous-réseau est `192.168.1.0/24` (les trois mêmes premiers chiffres que ton IP, `.0` pour le dernier).
-
 ```bash
 sudo apt install -y ufw
-sudo ufw allow from 192.168.1.0/24 to any port 22   # utilise le sous-réseau trouvé ci-dessus
+sudo ufw allow from 192.168.1.0/24 to any port 22   # la plupart des routeurs domestiques utilisent ce sous-réseau — si `ip -4 addr show` t'en donne un autre, utilise-le à la place
 sudo ufw allow 80,443/tcp
 sudo ufw enable
 ```
