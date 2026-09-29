@@ -131,7 +131,7 @@ No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain
 2. On the Pi, in your own (non-`organic`) account — no `sudo` needed here, `~/duckdns` is your own home directory:
    ```bash
    mkdir ~/duckdns && cd ~/duckdns
-   echo url="https://www.duckdns.org/update?domains=<your-subdomain>&token=<your-token>&ip=" > duck.sh
+   echo 'echo url="https://www.duckdns.org/update?domains=<your-subdomain>&token=<your-token>&ip=" | curl -k -o ~/duckdns/duck.log -K -' > duck.sh
    chmod 700 duck.sh
    ./duck.sh
    cat duck.log   # should print "OK"

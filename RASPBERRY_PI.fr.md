@@ -131,7 +131,7 @@ Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sou
 2. Sur le Pi, depuis ton propre compte (pas `organic`) — pas besoin de `sudo` ici, `~/duckdns` est dans ton propre home :
    ```bash
    mkdir ~/duckdns && cd ~/duckdns
-   echo url="https://www.duckdns.org/update?domains=<ton-sous-domaine>&token=<ton-token>&ip=" > duck.sh
+   echo 'echo url="https://www.duckdns.org/update?domains=<ton-sous-domaine>&token=<ton-token>&ip=" | curl -k -o ~/duckdns/duck.log -K -' > duck.sh
    chmod 700 duck.sh
    ./duck.sh
    cat duck.log   # doit afficher "OK"
