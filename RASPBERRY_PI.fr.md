@@ -60,10 +60,10 @@ Optionnel mais recommandé si le Pi reste exposé longtemps : `sudo apt install 
 ## 4. Un utilisateur dédié pour le service
 
 ```bash
-sudo adduser --system --group organic
+sudo adduser --system --group --home /home/organic --shell /bin/bash organic
 ```
 
-Pas de shell de connexion, pas de mot de passe — le process Node ne doit tourner ni sous `pi` ni sous root.
+Pas de mot de passe (un compte système ne peut pas se connecter avec un mot de passe) — le process Node ne doit tourner ni sous `pi` ni sous root. Un vrai répertoire home et un shell restent nécessaires ici pour que `sudo -u organic -i` (utilisé plus bas pour cloner et installer l'appli) fonctionne ; un simple `adduser --system` sans `--home`/`--shell` laisse le compte pointer vers `/nonexistent` sans shell, ce qui casse cette commande.
 
 ## 5. Node.js
 

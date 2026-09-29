@@ -60,10 +60,10 @@ Optional but recommended for a box left exposed long-term: `sudo apt install fai
 ## 4. A dedicated service user
 
 ```bash
-sudo adduser --system --group organic
+sudo adduser --system --group --home /home/organic --shell /bin/bash organic
 ```
 
-No login shell, no password — the Node process shouldn't run as `pi` or root.
+No password (system accounts can't log in with one) — the Node process shouldn't run as `pi` or root. A real home directory and shell are still needed here so `sudo -u organic -i` (used below to clone and install the app) works; plain `adduser --system` without `--home`/`--shell` leaves the account pointed at `/nonexistent` with no shell, which breaks that.
 
 ## 5. Node.js
 
