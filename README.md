@@ -23,6 +23,8 @@ my-server.example.org {
 }
 ```
 
+**Running this from home?** See [RASPBERRY_PI.md](RASPBERRY_PI.md) for a full, reproducible walkthrough — OS flashing, firewall, systemd service, DuckDNS, port forwarding, and Caddy, start to finish.
+
 ## The docker way (bigger hosts, Postgres)
 
 Expected layout — both repositories cloned side by side:
