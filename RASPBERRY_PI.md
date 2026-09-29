@@ -1,5 +1,7 @@
 # Self-hosting on a Raspberry Pi
 
+*[🇫🇷 Version française](RASPBERRY_PI.fr.md)*
+
 A worked, reproducible version of ["the simple way"](README.md#the-simple-way-recommended-for-community-servers) for a community server run from home: SQLite, no Docker, Caddy in front for TLS. A neighborhood-scale server has a tiny load — a Raspberry Pi handles it comfortably.
 
 **Hardware**: any Raspberry Pi 3 or later (64-bit capable, ARMv8+). The original Pi 1 (Model A/B, 2012) won't work — it's ARMv6, which current Node.js releases no longer support.
