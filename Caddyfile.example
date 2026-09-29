@@ -1,5 +1,8 @@
 # Caddy terminates TLS and proxies to the Node server.
 # Certificates are obtained and renewed automatically (Let's Encrypt).
+# 127.0.0.1 rather than localhost: on a dual-stack system localhost can
+# resolve to ::1 first, and if Node isn't listening on the IPv6 loopback
+# too, the proxy fails with a confusing "connection refused".
 my-server.example.org {
-    reverse_proxy localhost:8080
+    reverse_proxy 127.0.0.1:8080
 }

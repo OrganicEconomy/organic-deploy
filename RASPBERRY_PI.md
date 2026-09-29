@@ -85,12 +85,19 @@ cd organic-webserver/organic-webserver
 npm install --omit=dev
 ```
 
-Generate `ORGANIC_SECRET_KEY` (64 hex chars — the key the server signs as referent with). **Write it down somewhere other than the Pi too** (a password manager) — losing it is unrecoverable for that server's identity, and SD cards die.
+Generate `ORGANIC_SECRET_KEY` (64 hex chars — the key the server signs as referent with) and `ORGANIC_MASTER_KEY` (a long random passphrase — not a blockchain key, it encrypts every ecosystem's private key at rest in the database):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # run twice, once per key
+```
+
+**Write both down somewhere other than the Pi too** (a password manager) — losing either is unrecoverable: `ORGANIC_SECRET_KEY` for the server's own identity, `ORGANIC_MASTER_KEY` for every ecosystem's key already encrypted with it. SD cards die.
 
 Create `.env` at the repo root:
 
 ```
 ORGANIC_SECRET_KEY=<your 64-hex key>
+ORGANIC_MASTER_KEY=<your other 64-hex key>
 ORGANIC_SERVER_NAME=<your server's display name>
 ```
 
@@ -150,6 +157,33 @@ No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain
 
 In your router, forward external ports **80** and **443** to the Pi's fixed local IP, same ports on the Pi side — this keeps the Caddy config below simple (no custom ports).
 
+### If your ISP blocks this (CGNAT / no public IPv4)
+
+Some ISPs — in France, this is common on SFR/Red by SFR fiber lines — put residential connections behind Carrier-Grade NAT (often via DS-Lite): you get a real public IPv6 but only a private, shared IPv4, and the router's IPv4 port-forwarding menu either disappears or silently does nothing. Signs you're affected: that menu is missing/grayed out, or the connection is otherwise clearly not a real public IPv4.
+
+Two ways out:
+
+1. **Ask your ISP for a public IPv4 / "CGNAT rollback"** — for SFR/Red by SFR, technical support can do this on request (usually within about a week). Keeps the rest of this guide unchanged.
+2. **Go IPv6-only instead** — works immediately, no ISP ticket, and stays fully self-hosted (no third-party tunnel). The one real tradeoff: visitors on IPv4-only networks (uncommon in France — [~73% IPv6 adoption in 2026](https://www.arcep.fr/fileadmin/reprise/observatoire/ipv6/Arcep_2025_Barometer_of_the_Transition_to_IPv6.pdf) — but not zero) simply can't reach the server.
+
+   - Find the Pi's global IPv6 address:
+     ```bash
+     ip -6 addr show eth0   # the "scope global" line, not fe80::...
+     ```
+   - In the router, look for a separate **IPv6 firewall** section (not the IPv4 NAT one) and open inbound TCP 80/443 to that address — a firewall rule, not port forwarding, since IPv6 has no NAT to traverse.
+   - Point DuckDNS at an **AAAA** record too, re-reading the address each run since it can change with the delegated prefix:
+     ```bash
+     cd ~/duckdns
+     cat > duck.sh << 'SCRIPT'
+     IP6=$(ip -6 addr show eth0 | grep "scope global" | awk '{print $2}' | cut -d/ -f1)
+     echo url="https://www.duckdns.org/update?domains=<your-subdomain>&token=<your-token>&ip=&ipv6=${IP6}" | curl -k -o ~/duckdns/duck.log -K -
+     SCRIPT
+     chmod 700 duck.sh
+     ./duck.sh && cat duck.log   # should print "OK"
+     ```
+     (the same cron entry from step 8 keeps this current — no change needed there)
+   - Caddy (next step) needs no changes — it listens on both address families by default.
+
 ## 10. Caddy (automatic TLS)
 
 ```bash
@@ -163,9 +197,11 @@ Adapt [Caddyfile.example](Caddyfile.example) with your real hostname and copy it
 
 ```
 <your-name>.duckdns.org {
-    reverse_proxy localhost:8080
+    reverse_proxy 127.0.0.1:8080
 }
 ```
+
+(`127.0.0.1` rather than `localhost` — on a dual-stack system `localhost` can resolve to `::1` first, and if Node isn't listening on the IPv6 loopback too, the proxy fails with a confusing `connection refused` even though everything else is working.)
 
 ```bash
 sudo systemctl reload caddy

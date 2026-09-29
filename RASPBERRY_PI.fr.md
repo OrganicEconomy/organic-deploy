@@ -85,12 +85,19 @@ cd organic-webserver/organic-webserver
 npm install --omit=dev
 ```
 
-Générer `ORGANIC_SECRET_KEY` (64 caractères hexadécimaux — la clé avec laquelle le serveur signe en tant que référent). **La noter aussi ailleurs que sur le Pi** (un gestionnaire de mots de passe) — sa perte est irréversible pour l'identité de ce serveur, et une carte SD peut mourir.
+Générer `ORGANIC_SECRET_KEY` (64 caractères hexadécimaux — la clé avec laquelle le serveur signe en tant que référent) et `ORGANIC_MASTER_KEY` (une longue phrase de passe aléatoire — pas une clé de blockchain, elle sert à chiffrer la clé privée de chaque écosystème en base) :
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # à lancer deux fois, une par clé
+```
+
+**Note les deux ailleurs que sur le Pi aussi** (un gestionnaire de mots de passe) — leur perte est irréversible : `ORGANIC_SECRET_KEY` pour l'identité du serveur lui-même, `ORGANIC_MASTER_KEY` pour toutes les clés d'écosystèmes déjà chiffrées avec elle. Une carte SD peut mourir.
 
 Créer `.env` à la racine du dépôt :
 
 ```
 ORGANIC_SECRET_KEY=<ta clé de 64 caractères hex>
+ORGANIC_MASTER_KEY=<ton autre clé de 64 caractères hex>
 ORGANIC_SERVER_NAME=<le nom affiché de ton serveur>
 ```
 
@@ -150,6 +157,33 @@ Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sou
 
 Dans ton routeur, rediriger les ports externes **80** et **443** vers l'IP locale fixe du Pi, mêmes ports côté Pi — ça garde la config Caddy ci-dessous simple (pas de port personnalisé).
 
+### Si ton FAI bloque ça (CGNAT / pas d'IPv4 publique)
+
+Certains FAI — en France, c'est courant sur les lignes fibre SFR/Red by SFR — placent les connexions résidentielles derrière un Carrier-Grade NAT (souvent via DS-Lite) : tu gardes une vraie IPv6 publique, mais ton IPv4 devient privée/partagée, et le menu de redirection de port IPv4 du routeur disparaît ou ne fait plus rien silencieusement. Signes que tu es concerné : ce menu est absent/grisé, ou la connexion n'est visiblement pas une vraie IPv4 publique.
+
+Deux issues possibles :
+
+1. **Demander à ton FAI une IPv4 publique / un "rollback CGNAT"** — chez SFR/Red by SFR, le support technique peut le faire sur demande (généralement sous environ une semaine). Garde le reste du tuto inchangé.
+2. **Passer en IPv6 uniquement** — fonctionne immédiatement, pas de ticket FAI à ouvrir, et reste entièrement auto-hébergé (pas de tunnel tiers). Le vrai compromis : les visiteurs sur des réseaux strictement IPv4 (rare en France — [~73 % d'adoption IPv6 en 2026](https://www.arcep.fr/fileadmin/reprise/observatoire/ipv6/Arcep_2025_Barometer_of_the_Transition_to_IPv6.pdf) — mais pas nul) ne pourront tout simplement pas joindre le serveur.
+
+   - Trouver l'adresse IPv6 globale du Pi :
+     ```bash
+     ip -6 addr show eth0   # la ligne "scope global", pas fe80::...
+     ```
+   - Dans le routeur, chercher une section **pare-feu IPv6** séparée (pas celle du NAT IPv4) et ouvrir l'entrant TCP 80/443 vers cette adresse — une règle de pare-feu, pas une redirection, puisque l'IPv6 n'a pas de NAT à traverser.
+   - Pointer aussi DuckDNS vers un enregistrement **AAAA**, en relisant l'adresse à chaque exécution puisqu'elle peut changer avec le préfixe délégué :
+     ```bash
+     cd ~/duckdns
+     cat > duck.sh << 'SCRIPT'
+     IP6=$(ip -6 addr show eth0 | grep "scope global" | awk '{print $2}' | cut -d/ -f1)
+     echo url="https://www.duckdns.org/update?domains=<ton-sous-domaine>&token=<ton-token>&ip=&ipv6=${IP6}" | curl -k -o ~/duckdns/duck.log -K -
+     SCRIPT
+     chmod 700 duck.sh
+     ./duck.sh && cat duck.log   # doit afficher "OK"
+     ```
+     (le même cron de l'étape 8 garde ça à jour — rien à changer là-bas)
+   - Caddy (étape suivante) n'a rien à changer — il écoute déjà sur les deux familles d'adresses par défaut.
+
 ## 10. Caddy (TLS automatique)
 
 ```bash
@@ -163,9 +197,11 @@ Adapter [Caddyfile.example](Caddyfile.example) avec ton vrai nom d'hôte et le c
 
 ```
 <ton-nom>.duckdns.org {
-    reverse_proxy localhost:8080
+    reverse_proxy 127.0.0.1:8080
 }
 ```
+
+(`127.0.0.1` plutôt que `localhost` — sur un système dual-stack, `localhost` peut se résoudre en `::1` en premier, et si Node n'écoute pas aussi sur le loopback IPv6, le proxy échoue avec un `connection refused` déroutant, alors que tout le reste fonctionne.)
 
 ```bash
 sudo systemctl reload caddy
