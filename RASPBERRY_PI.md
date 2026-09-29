@@ -71,10 +71,10 @@ Install from the official NodeSource repository (ships arm64 builds; Debian's ow
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs build-essential python3
+sudo apt install -y nodejs build-essential python3 git
 ```
 
-`build-essential`/`python3` are a safety net in case `sqlite3` (a native dependency) has to compile from source for lack of a prebuilt binary on this exact OS/arch combo — not always needed, but avoids a confusing failure if it is.
+`build-essential`/`python3` are a safety net in case `sqlite3` (a native dependency) has to compile from source for lack of a prebuilt binary on this exact OS/arch combo — not always needed, but avoids a confusing failure if it is. `git` isn't included in Raspberry Pi OS Lite by default either, and is needed for the clone in the next step.
 
 ## 6. Deploy the server
 

@@ -71,10 +71,10 @@ Installer depuis le dépôt officiel NodeSource (fournit des builds arm64 ; le p
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs build-essential python3
+sudo apt install -y nodejs build-essential python3 git
 ```
 
-`build-essential`/`python3` servent de filet de sécurité au cas où `sqlite3` (une dépendance native) doive se recompiler faute de binaire préconstruit pour cette combinaison OS/architecture — pas systématiquement nécessaire, mais évite un échec déroutant si c'est le cas.
+`build-essential`/`python3` servent de filet de sécurité au cas où `sqlite3` (une dépendance native) doive se recompiler faute de binaire préconstruit pour cette combinaison OS/architecture — pas systématiquement nécessaire, mais évite un échec déroutant si c'est le cas. `git` non plus n'est pas inclus par défaut dans Raspberry Pi OS Lite, et il est nécessaire pour le clone à l'étape suivante.
 
 ## 6. Déployer le serveur
 
