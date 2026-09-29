@@ -227,7 +227,15 @@ From a machine outside your LAN (phone on mobile data works well, to make sure y
 E2E_BASE_URL=https://<your-name>.duckdns.org npm run e2e
 ```
 
-(same scenario as [the docker deployment's verification](README.md#verifying-a-deployment) — genesis, daily money creation, an online payment, a paper bill, and the two fraud rejections.) Also check that the HTTPS certificate is valid (no browser warning), and that both services survive a reboot:
+(same scenario as [the docker deployment's verification](README.md#verifying-a-deployment) — genesis, daily money creation, an online payment, a paper bill, and the two fraud rejections.)
+
+**If you went the IPv6-only route** (step 9) and this hangs/times out from a Windows machine that otherwise looks fine, check whether IPv6 is actually enabled on its network adapter before suspecting the server — it's sometimes switched off by default or by an old tweak, even when the ISP box itself has working IPv6:
+```powershell
+Get-NetAdapterBinding -ComponentID ms_tcpip6   # look for Enabled: False on your real adapter
+Enable-NetAdapterBinding -Name "Ethernet" -ComponentID ms_tcpip6   # run as Administrator
+```
+
+Also check that the HTTPS certificate is valid (no browser warning), and that both services survive a reboot:
 
 ```bash
 sudo reboot

@@ -227,7 +227,15 @@ Depuis une machine hors de ton LAN (un téléphone en 4G convient bien, pour êt
 E2E_BASE_URL=https://<ton-nom>.duckdns.org npm run e2e
 ```
 
-(même scénario que [la vérification du déploiement docker](README.md#verifying-a-deployment) — genèse, création de monnaie quotidienne, un paiement en ligne, un billet papier, et les deux rejets de fraude.) Vérifier aussi que le certificat HTTPS est valide (pas d'avertissement navigateur), et que les deux services survivent à un redémarrage :
+(même scénario que [la vérification du déploiement docker](README.md#verifying-a-deployment) — genèse, création de monnaie quotidienne, un paiement en ligne, un billet papier, et les deux rejets de fraude.)
+
+**Si tu es parti sur la voie IPv6 uniquement** (étape 9) et que ça reste bloqué/expire depuis une machine Windows qui semble pourtant normale, vérifie d'abord que l'IPv6 est bien activée sur son adaptateur réseau avant de suspecter le serveur — elle est parfois désactivée par défaut ou par une vieille manipulation, même quand la box du FAI a bien l'IPv6 qui fonctionne :
+```powershell
+Get-NetAdapterBinding -ComponentID ms_tcpip6   # repère Enabled: False sur ton adaptateur réel
+Enable-NetAdapterBinding -Name "Ethernet" -ComponentID ms_tcpip6   # à lancer en administrateur
+```
+
+Vérifier aussi que le certificat HTTPS est valide (pas d'avertissement navigateur), et que les deux services survivent à un redémarrage :
 
 ```bash
 sudo reboot
