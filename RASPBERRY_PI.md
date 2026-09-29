@@ -48,9 +48,17 @@ sudo dpkg-reconfigure unattended-upgrades   # keep security patches current auto
 
 ## 3. Firewall
 
+Find your actual LAN subnet first:
+
+```bash
+ip -4 addr show
+```
+
+Look for the active interface (`wlan0` or `eth0`) — a line like `inet 192.168.1.42/24 ...` means your subnet is `192.168.1.0/24` (same first three numbers as your IP, `.0` for the last one).
+
 ```bash
 sudo apt install -y ufw
-sudo ufw allow from 192.168.0.0/16 to any port 22   # adjust to your actual LAN subnet
+sudo ufw allow from 192.168.1.0/24 to any port 22   # use the subnet you just found
 sudo ufw allow 80,443/tcp
 sudo ufw enable
 ```
