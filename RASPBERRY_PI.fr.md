@@ -1,0 +1,259 @@
+# Auto-hébergement sur Raspberry Pi
+
+*[🇬🇧 English version](RASPBERRY_PI.md)*
+
+Une version concrète et reproductible de [« la voie simple »](README.md#the-simple-way-recommended-for-community-servers) : un serveur communautaire hébergé chez soi — SQLite, pas de Docker, Caddy devant pour le TLS. À l'échelle d'un quartier, la charge est minime — un Raspberry Pi encaisse ça sans problème.
+
+**Matériel** : n'importe quel Raspberry Pi 3 ou plus récent (compatible 64 bits, ARMv8+). Le tout premier Pi (Model A/B, 2012) ne convient pas — il est en ARMv6, que les versions actuelles de Node.js ne supportent plus.
+
+## 1. Flasher l'OS
+
+Utiliser l'outil officiel [Raspberry Pi Imager](https://www.raspberrypi.com/software/). Dans le choix de l'OS, **Raspberry Pi OS Lite (64-bit)** ne fait pas partie des choix mis en avant par défaut — il faut d'abord aller voir du côté des OS Raspberry moins courants/génériques pour le trouver. L'appli propose ensuite directement, dans le processus d'installation classique (pas besoin d'icône ni de raccourci à chercher), de définir un nom d'hôte, d'activer SSH, et de configurer le wifi si ce n'est pas en Ethernet — de quoi obtenir une installation entièrement headless, sans écran ni clavier à brancher.
+
+Une fois démarré (1 à 2 minutes), le retrouver sur le réseau (`ping <nom-hote>.local`, ou la liste des clients de ton routeur) et s'y connecter en SSH.
+
+```bash
+sudo apt update && sudo apt full-upgrade -y
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure unattended-upgrades   # maintient les correctifs de sécurité à jour tout seul
+```
+
+## 2. Réseau
+
+- **Réserver une IP locale fixe pour le Pi dans le routeur** (réservation DHCP par adresse MAC) — à faire avant de configurer la redirection de port, sinon elle casse au prochain renouvellement de bail DHCP. Récupérer d'abord l'IP et l'adresse MAC actuelles du Pi :
+  ```bash
+  hostname -I
+  ip link show | grep -A1 "eth0\|wlan0"
+  ```
+  Puis réserver l'IP de cette MAC dans l'interface d'admin du routeur (souvent `192.168.1.1` ou `192.168.0.1`).
+
+- **Passer SSH en authentification par clé uniquement.** Si tu n'as pas encore de paire de clés SSH, en générer une sur la machine depuis laquelle tu te connectes (pas sur le Pi) : `ssh-keygen -t ed25519`. Puis copier la clé publique sur le Pi.
+
+  Sous macOS/Linux :
+  ```bash
+  ssh-copy-id pi@<ip-du-pi>
+  ```
+  Sous Windows (PowerShell — `ssh-copy-id` n'est pas disponible par défaut) :
+  ```powershell
+  type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh pi@<ip-du-pi> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+  ```
+  Se reconnecter une fois pour confirmer que la connexion par clé fonctionne, *puis seulement* désactiver l'authentification par mot de passe sur le Pi :
+  ```bash
+  sudo nano /etc/ssh/sshd_config
+  # mettre : PasswordAuthentication no
+  sudo systemctl restart ssh
+  ```
+
+- **Ne pas rediriger le port SSH (22) vers l'extérieur.** Seuls 80 et 443 doivent être joignables depuis internet — administrer le Pi depuis le réseau local (ou via un VPN) à la place.
+
+## 3. Pare-feu
+
+```bash
+sudo apt install -y ufw
+sudo ufw allow from 192.168.1.0/24 to any port 22   # la plupart des routeurs domestiques utilisent ce sous-réseau — si `ip -4 addr show` t'en donne un autre, utilise-le à la place
+sudo ufw allow 80,443/tcp
+sudo ufw enable
+```
+
+Optionnel mais recommandé si le Pi reste exposé longtemps : `sudo apt install fail2ban`, pour bannir les tentatives de force brute contre SSH/HTTP.
+
+## 4. Un utilisateur dédié pour le service
+
+```bash
+sudo adduser --system --group --home /home/organic --shell /bin/bash organic
+```
+
+Pas de mot de passe (un compte système ne peut pas se connecter avec un mot de passe) — le process Node ne doit tourner ni sous `pi` ni sous root. Un vrai répertoire home et un shell restent nécessaires ici pour que `sudo -u organic -i` (utilisé plus bas pour cloner et installer l'appli) fonctionne ; un simple `adduser --system` sans `--home`/`--shell` laisse le compte pointer vers `/nonexistent` sans shell, ce qui casse cette commande.
+
+## 5. Node.js
+
+Installer depuis le dépôt officiel NodeSource (fournit des builds arm64 ; le paquet Debian est généralement trop ancien) :
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs build-essential python3 git
+```
+
+`build-essential`/`python3` servent de filet de sécurité au cas où `sqlite3` (une dépendance native) doive se recompiler faute de binaire préconstruit pour cette combinaison OS/architecture — pas systématiquement nécessaire, mais évite un échec déroutant si c'est le cas. `git` non plus n'est pas inclus par défaut dans Raspberry Pi OS Lite, et il est nécessaire pour le clone à l'étape suivante.
+
+## 6. Déployer le serveur
+
+```bash
+sudo -u organic -i
+git clone https://github.com/OrganicEconomy/organic-webserver.git
+cd organic-webserver/organic-webserver
+npm install --omit=dev
+```
+
+Générer `ORGANIC_SECRET_KEY` (64 caractères hexadécimaux — la clé avec laquelle le serveur signe en tant que référent) et `ORGANIC_MASTER_KEY` (une longue phrase de passe aléatoire — pas une clé de blockchain, elle sert à chiffrer la clé privée de chaque écosystème en base) :
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # à lancer deux fois, une par clé
+```
+
+**Note les deux ailleurs que sur le Pi aussi** (un gestionnaire de mots de passe) — leur perte est irréversible : `ORGANIC_SECRET_KEY` pour l'identité du serveur lui-même, `ORGANIC_MASTER_KEY` pour toutes les clés d'écosystèmes déjà chiffrées avec elle. Une carte SD peut mourir.
+
+Créer `.env` à la racine du dépôt :
+
+```
+ORGANIC_SECRET_KEY=<ta clé de 64 caractères hex>
+ORGANIC_MASTER_KEY=<ton autre clé de 64 caractères hex>
+ORGANIC_SERVER_NAME=<le nom affiché de ton serveur>
+```
+
+## 7. Le faire tourner comme service systemd
+
+`/etc/systemd/system/organic-webserver.service` :
+
+```ini
+[Unit]
+Description=Organic Economy webserver
+After=network.target
+
+[Service]
+Type=simple
+User=organic
+WorkingDirectory=/home/organic/organic-webserver/organic-webserver
+EnvironmentFile=/home/organic/organic-webserver/organic-webserver/.env
+ExecStart=/usr/bin/node --import tsx server.ts
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now organic-webserver
+sudo systemctl status organic-webserver     # doit afficher active (running)
+journalctl -u organic-webserver -f          # logs en direct
+```
+
+## 8. Un nom d'hôte public (DuckDNS)
+
+Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sous-domaine gratuit (`<nom>.duckdns.org`) avec une mise à jour d'IP dynamique intégrée.
+
+1. Se connecter sur [duckdns.org](https://www.duckdns.org) et réserver un sous-domaine (ex. `ma-monnaie-de-quartier` → `ma-monnaie-de-quartier.duckdns.org`). Noter le **token** affiché sur la page du compte.
+2. Sur le Pi, depuis ton propre compte (pas `organic`) — pas besoin de `sudo` ici, `~/duckdns` est dans ton propre home :
+   ```bash
+   mkdir ~/duckdns && cd ~/duckdns
+   echo 'echo url="https://www.duckdns.org/update?domains=<ton-sous-domaine>&token=<ton-token>&ip=" | curl -k -o ~/duckdns/duck.log -K -' > duck.sh
+   chmod 700 duck.sh
+   ./duck.sh
+   cat duck.log   # doit afficher "OK"
+   ```
+3. Planifier une exécution toutes les 5 minutes pour suivre les changements d'IP domicile :
+   ```bash
+   crontab -e
+   ```
+   ajouter :
+   ```
+   */5 * * * * ~/duckdns/duck.sh >/dev/null 2>&1
+   ```
+   (Un timer systemd est plus robuste que cron si tu veux aller plus loin, mais cron est largement suffisant ici.)
+
+## 9. Redirection de port
+
+Dans ton routeur, rediriger les ports externes **80** et **443** vers l'IP locale fixe du Pi, mêmes ports côté Pi — ça garde la config Caddy ci-dessous simple (pas de port personnalisé).
+
+### Si ton FAI bloque ça (CGNAT / pas d'IPv4 publique)
+
+Certains FAI — en France, c'est courant sur les lignes fibre SFR/Red by SFR — placent les connexions résidentielles derrière un Carrier-Grade NAT (souvent via DS-Lite) : tu gardes une vraie IPv6 publique, mais ton IPv4 devient privée/partagée, et le menu de redirection de port IPv4 du routeur disparaît ou ne fait plus rien silencieusement. Signes que tu es concerné : ce menu est absent/grisé, ou la connexion n'est visiblement pas une vraie IPv4 publique.
+
+Deux issues possibles :
+
+1. **Demander à ton FAI une IPv4 publique / un "rollback CGNAT"** — chez SFR/Red by SFR, le support technique peut le faire sur demande (généralement sous environ une semaine). Garde le reste du tuto inchangé.
+2. **Passer en IPv6 uniquement** — fonctionne immédiatement, pas de ticket FAI à ouvrir, et reste entièrement auto-hébergé (pas de tunnel tiers). Le vrai compromis : les visiteurs sur des réseaux strictement IPv4 (rare en France — [~73 % d'adoption IPv6 en 2026](https://www.arcep.fr/fileadmin/reprise/observatoire/ipv6/Arcep_2025_Barometer_of_the_Transition_to_IPv6.pdf) — mais pas nul) ne pourront tout simplement pas joindre le serveur.
+
+   - Trouver l'adresse IPv6 globale du Pi :
+     ```bash
+     ip -6 addr show eth0   # la ligne "scope global", pas fe80::...
+     ```
+   - Dans le routeur, chercher une section **pare-feu IPv6** séparée (pas celle du NAT IPv4) et ouvrir l'entrant TCP 80/443 vers cette adresse — une règle de pare-feu, pas une redirection, puisque l'IPv6 n'a pas de NAT à traverser.
+   - Pointer aussi DuckDNS vers un enregistrement **AAAA**, en relisant l'adresse à chaque exécution puisqu'elle peut changer avec le préfixe délégué :
+     ```bash
+     cd ~/duckdns
+     cat > duck.sh << 'SCRIPT'
+     IP6=$(ip -6 addr show eth0 | grep "scope global" | awk '{print $2}' | cut -d/ -f1)
+     echo url="https://www.duckdns.org/update?domains=<ton-sous-domaine>&token=<ton-token>&ip=&ipv6=${IP6}" | curl -k -o ~/duckdns/duck.log -K -
+     SCRIPT
+     chmod 700 duck.sh
+     ./duck.sh && cat duck.log   # doit afficher "OK"
+     ```
+     (le même cron de l'étape 8 garde ça à jour — rien à changer là-bas)
+   - Caddy (étape suivante) n'a rien à changer — il écoute déjà sur les deux familles d'adresses par défaut.
+
+## 10. Caddy (TLS automatique)
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install caddy
+```
+
+Adapter [Caddyfile.example](Caddyfile.example) avec ton vrai nom d'hôte et le copier vers `/etc/caddy/Caddyfile` :
+
+```
+<ton-nom>.duckdns.org {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
+(`127.0.0.1` plutôt que `localhost` — sur un système dual-stack, `localhost` peut se résoudre en `::1` en premier, et si Node n'écoute pas aussi sur le loopback IPv6, le proxy échoue avec un `connection refused` déroutant, alors que tout le reste fonctionne.)
+
+```bash
+sudo systemctl reload caddy
+```
+
+Caddy obtient et renouvelle seul son certificat Let's Encrypt — ça ne fonctionne qu'une fois les ports 80/443 réellement joignables depuis internet (étape 9).
+
+## 11. Sauvegardes
+
+`data/organic.sqlite` est un fichier unique. Un cron quotidien qui le copie ailleurs suffit :
+
+```
+0 3 * * * cp /home/organic/organic-webserver/organic-webserver/data/organic.sqlite /chemin/vers/backup/organic-$(date +\%F).sqlite
+```
+
+Ajouter une rotation simple (garder les N derniers jours) pour que les sauvegardes ne remplissent pas le disque. À plus long terme, envisager un démarrage sur SSD USB plutôt que sur la carte SD — les cartes SD sont le point de panne le plus fréquent sur un Pi qui tourne en continu.
+
+## Vérifier le déploiement
+
+Depuis une machine hors de ton LAN (un téléphone en 4G convient bien, pour être sûr de sortir vraiment par internet) :
+
+```bash
+E2E_BASE_URL=https://<ton-nom>.duckdns.org npm run e2e
+```
+
+(même scénario que [la vérification du déploiement docker](README.md#verifying-a-deployment) — genèse, création de monnaie quotidienne, un paiement en ligne, un billet papier, et les deux rejets de fraude.)
+
+**Si tu es parti sur la voie IPv6 uniquement** (étape 9) et que ça reste bloqué/expire depuis une machine Windows qui semble pourtant normale, vérifie d'abord que l'IPv6 est bien activée sur son adaptateur réseau avant de suspecter le serveur — elle est parfois désactivée par défaut ou par une vieille manipulation, même quand la box du FAI a bien l'IPv6 qui fonctionne :
+```powershell
+Get-NetAdapterBinding -ComponentID ms_tcpip6   # repère Enabled: False sur ton adaptateur réel
+Enable-NetAdapterBinding -Name "Ethernet" -ComponentID ms_tcpip6   # à lancer en administrateur
+```
+
+Vérifier aussi que le certificat HTTPS est valide (pas d'avertissement navigateur), et que les deux services survivent à un redémarrage :
+
+```bash
+sudo reboot
+# une fois redémarré :
+sudo systemctl status organic-webserver caddy   # les deux en active (running)
+```
+
+## Mettre à jour le serveur
+
+Pas de nouvelle dépendance ni variable d'environnement → un simple pull et redémarrage :
+
+```bash
+sudo -u organic -i
+cd organic-webserver/organic-webserver
+git pull origin main
+exit
+sudo systemctl restart organic-webserver
+sudo systemctl status organic-webserver   # doit afficher active (running)
+```
+
+Si un changement a ajouté une nouvelle dépendance, lancer `npm install --omit=dev` (toujours sous `organic`) avant de redémarrer le service.

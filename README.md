@@ -10,8 +10,10 @@ A community server has a tiny load: SQLite (the default) is all you need, and ba
 git clone https://github.com/OrganicEconomy/organic-webserver.git
 cd organic-webserver/organic-webserver
 npm install
-ORGANIC_SECRET_KEY=<64-hex-secret-key> ORGANIC_SERVER_NAME="My server" npm start
+ORGANIC_SECRET_KEY=<64-hex-secret-key> ORGANIC_MASTER_KEY=<a-long-random-passphrase> ORGANIC_SERVER_NAME="My server" npm start
 ```
+
+`ORGANIC_MASTER_KEY` isn't a blockchain key, just a passphrase — it encrypts every ecosystem's private key at rest in the database. Any long random string works, but it must stay stable: changing it later makes every already-encrypted ecosystem key unreadable.
 
 Data lands in `./data/organic.sqlite`. Back it up with `cp`.
 
@@ -19,9 +21,13 @@ Data lands in `./data/organic.sqlite`. Back it up with `cp`.
 
 ```
 my-server.example.org {
-    reverse_proxy localhost:8080
+    reverse_proxy 127.0.0.1:8080
 }
 ```
+
+(`127.0.0.1` rather than `localhost` — on a dual-stack system, `localhost` can resolve to `::1` first, and if Node isn't listening on the IPv6 loopback too, Caddy's proxy fails with a confusing `connection refused`.)
+
+**Running this from home?** See [RASPBERRY_PI.md](RASPBERRY_PI.md) (or [in French](RASPBERRY_PI.fr.md)) for a full, reproducible walkthrough — OS flashing, firewall, systemd service, DuckDNS, port forwarding, and Caddy, start to finish.
 
 ## The docker way (bigger hosts, Postgres)
 
