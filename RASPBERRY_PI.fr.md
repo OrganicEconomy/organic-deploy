@@ -242,3 +242,18 @@ sudo reboot
 # une fois redémarré :
 sudo systemctl status organic-webserver caddy   # les deux en active (running)
 ```
+
+## Mettre à jour le serveur
+
+Pas de nouvelle dépendance ni variable d'environnement → un simple pull et redémarrage :
+
+```bash
+sudo -u organic -i
+cd organic-webserver/organic-webserver
+git pull origin main
+exit
+sudo systemctl restart organic-webserver
+sudo systemctl status organic-webserver   # doit afficher active (running)
+```
+
+Si un changement a ajouté une nouvelle dépendance, lancer `npm install --omit=dev` (toujours sous `organic`) avant de redémarrer le service.
