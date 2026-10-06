@@ -8,7 +8,7 @@ Une version concrète et reproductible de [« la voie simple »](README.md#the-s
 
 ## 1. Flasher l'OS
 
-Utiliser l'outil officiel [Raspberry Pi Imager](https://www.raspberrypi.com/software/). Choisir **Raspberry Pi OS Lite (64-bit)** — pas besoin de bureau graphique pour un serveur. Avant d'écrire, ouvrir les options avancées (icône en forme de roue crantée, ou `Ctrl+Shift+X`) pour définir un nom d'hôte, activer SSH, et configurer le wifi si ce n'est pas en Ethernet — de quoi obtenir une installation entièrement headless, sans écran ni clavier à brancher.
+Utiliser l'outil officiel [Raspberry Pi Imager](https://www.raspberrypi.com/software/). Dans le choix de l'OS, **Raspberry Pi OS Lite (64-bit)** ne fait pas partie des choix mis en avant par défaut — il faut d'abord aller voir du côté des OS Raspberry moins courants/génériques pour le trouver. L'appli propose ensuite directement, dans le processus d'installation classique (pas besoin d'icône ni de raccourci à chercher), de définir un nom d'hôte, d'activer SSH, et de configurer le wifi si ce n'est pas en Ethernet — de quoi obtenir une installation entièrement headless, sans écran ni clavier à brancher.
 
 Une fois démarré (1 à 2 minutes), le retrouver sur le réseau (`ping <nom-hote>.local`, ou la liste des clients de ton routeur) et s'y connecter en SSH.
 

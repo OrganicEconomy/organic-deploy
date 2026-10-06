@@ -8,7 +8,7 @@ A worked, reproducible version of ["the simple way"](README.md#the-simple-way-re
 
 ## 1. Flash the OS
 
-Use the official [Raspberry Pi Imager](https://www.raspberrypi.com/software/). Pick **Raspberry Pi OS Lite (64-bit)** — no desktop needed for a headless server. Before writing, open the advanced options (gear icon / `Ctrl+Shift+X`) to set a hostname, enable SSH, and configure Wi-Fi if you're not on Ethernet — this gets you a fully headless setup with no monitor/keyboard needed.
+Use the official [Raspberry Pi Imager](https://www.raspberrypi.com/software/). In the OS picker, **Raspberry Pi OS Lite (64-bit)** isn't one of the options shown up front — look under the more generic/less common Raspberry Pi OS entries to find it. The app then walks you, as part of the regular install flow (no separate icon or shortcut to hunt for), through setting a hostname, enabling SSH, and configuring Wi-Fi if you're not on Ethernet — this gets you a fully headless setup with no monitor/keyboard needed.
 
 Once booted (1-2 minutes), find it on the network (`ping <hostname>.local` or your router's client list) and SSH in.
 
