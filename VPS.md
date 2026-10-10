@@ -27,7 +27,7 @@ The script first asks for everything it needs: admin username, SSH public key, d
 
 Three moments need you:
 
-1. **The SSH check.** The script creates your admin user, then asks you to open **another terminal** and run `ssh <admin>@<ip>` followed by `sudo -v`. Type `ok` only once that works. Root login and password logins get disabled right after, so a mistake there would lock you out.
+1. **The SSH check.** The script creates your admin user, then asks you to open **another terminal** and run `ssh <admin>@<ip>` followed by `sudo -v`. Only once both work, type the sentence it asks for (`<admin> can log in and sudo`). Root login and password logins get disabled right after, so a mistake there would lock you out; keep your provider's web console (KVM/VNC) in mind as a way back in.
 2. **The keys.** `ORGANIC_SECRET_KEY` (the server's identity) and `ORGANIC_MASTER_KEY` (which decrypts every ecosystem key in the database) are shown **once**. Write them down outside the server, then type `noted`. Losing them is irreversible.
 3. **DNS.** The script shows the VPS public IPv4 and IPv6. Create the matching **A** and **AAAA** records for your domain, then press Enter until it resolves. Caddy can't get an HTTPS certificate before that.
 

@@ -51,7 +51,7 @@ confirm_installation_settings() {
 
 SUMMARY
   echo "Press Ctrl+C now to abort and start over with other answers."
-  wait_for_word yes
+  wait_until_typed yes
 }
 
 upgrade_system_packages() {
@@ -91,17 +91,26 @@ public_ipv6() {
 harden_ssh_once_admin_login_works() {
   announce "Locking SSH down to $ADMIN_USER, with keys only"
   cat <<INSTRUCTIONS
-Before root and password logins get disabled, check that your key works.
+
+  ################################################################################
+  #  DANGER: the next step can lock you out of this VPS for good.                #
+  #  Root login and password logins are about to be disabled: from then on,      #
+  #  only the admin user, with the SSH key you pasted, will be able to log in.   #
+  ################################################################################
+
 Keep this terminal open and, in ANOTHER one, run:
 
     ssh $ADMIN_USER@$(public_ipv4)
 
-and then, once logged in:
+then, once logged in:
 
     sudo -v
 
+Only go on if BOTH worked. Otherwise press Ctrl+C: nothing has been locked yet.
+If you get locked out anyway, your provider's web console (KVM/VNC) is the way back in.
+
 INSTRUCTIONS
-  wait_for_word ok
+  wait_until_typed "$ADMIN_USER can log in and sudo"
   render_sshd_hardening "$ADMIN_USER" > "$SSHD_DROP_IN_FILE"
   sshd -t || { rm -f "$SSHD_DROP_IN_FILE"; fail "the SSH configuration is invalid, nothing was changed."; }
   systemctl reload ssh
@@ -164,7 +173,7 @@ show_keys_to_write_down() {
   ORGANIC_MASTER_KEY=$2
 
 KEYS
-  wait_for_word noted
+  wait_until_typed noted
   clear || true
 }
 

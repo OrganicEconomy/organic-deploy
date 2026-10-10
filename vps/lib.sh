@@ -157,11 +157,11 @@ is_not_empty() {
   [[ -n "$value" ]]
 }
 
-wait_for_word() {
-  local expected_word="$1"
+wait_until_typed() {
+  local expected_text="$1"
   local answer
-  while answer="$(ask "Type '$expected_word' to continue")"; do
-    [[ "$answer" == "$expected_word" ]] && return 0
+  while answer="$(ask "Type '$expected_text' to continue")"; do
+    [[ "$answer" == "$expected_text" ]] && return 0
   done
   return 1
 }
