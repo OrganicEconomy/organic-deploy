@@ -6,6 +6,10 @@ SYSTEMD_UNIT_FILE=/etc/systemd/system/organic-webserver.service
 SSHD_DROP_IN_FILE=/etc/ssh/sshd_config.d/00-organic.conf
 CADDYFILE=/etc/caddy/Caddyfile
 HEALTH_URL=http://127.0.0.1:$NODE_PORT/api/v1/info
+DATABASE_FILE=$SERVER_DIR/data/organic.sqlite
+BACKUP_DIR=/var/backups/organic
+BACKUP_SCRIPT=/usr/local/bin/organic-backup
+BACKUP_CRON_FILE=/etc/cron.d/organic-backup
 
 announce() {
   printf '\n==> %s\n' "$1"
@@ -232,6 +236,32 @@ check_https() {
   echo "https://$DOMAIN does not answer yet. Once DNS is right, check: journalctl -u caddy"
 }
 
+install_daily_backups() {
+  announce "Scheduling daily backups (kept $BACKUP_RETENTION_DAYS days)"
+  install -d -m 700 "$BACKUP_DIR"
+  render_backup_script "$DATABASE_FILE" "$BACKUP_DIR" "$BACKUP_RETENTION_DAYS" > "$BACKUP_SCRIPT"
+  chmod 700 "$BACKUP_SCRIPT"
+  render_backup_cron "$BACKUP_SCRIPT" > "$BACKUP_CRON_FILE"
+  chmod 644 "$BACKUP_CRON_FILE"
+  back_up_database
+}
+
+back_up_database() {
+  announce "Backing up the database"
+  "$BACKUP_SCRIPT"
+  echo "Backup written to $BACKUP_DIR."
+}
+
+update_server_code() {
+  announce "Pulling the latest server code"
+  run_as_service_user "cd $SERVER_DIR && git pull --ff-only && npm install --omit=dev"
+}
+
+restart_server() {
+  announce "Restarting the server"
+  systemctl restart organic-webserver
+}
+
 print_installation_summary() {
   cat <<SUMMARY
 
@@ -240,6 +270,8 @@ Installation complete.
   Server      : https://$DOMAIN
   SSH         : ssh $ADMIN_USER@$DOMAIN (root and passwords are disabled)
   Logs        : journalctl -u organic-webserver -f
+  Backups     : $BACKUP_DIR (daily at 3am, $BACKUP_RETENTION_DAYS days kept)
+  Update      : sudo bash deploy-vps.sh update
 
 Check the deployment from your computer, in organic-webserver/organic-webserver:
 
