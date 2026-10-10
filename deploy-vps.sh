@@ -23,7 +23,17 @@ install_server() {
   wait_for_dns
   install_caddy
   check_https
+  install_daily_backups
   print_installation_summary
+}
+
+update_server() {
+  ensure_running_as_root
+  ensure_debian_with_systemd
+  back_up_database
+  update_server_code
+  restart_server
+  wait_for_server_health
 }
 
 main() {
@@ -35,7 +45,7 @@ main() {
   case "$command" in
     help) print_usage ;;
     install) install_server ;;
-    update) fail "the update command is not available yet." ;;
+    update) update_server ;;
   esac
 }
 

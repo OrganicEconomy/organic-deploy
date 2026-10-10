@@ -20,3 +20,9 @@ setup() {
   assert_failure
   assert_output --partial "must be run as root"
 }
+
+@test "should refuse to update when not run as root" {
+  run bash "$deploy_script" update < /dev/null
+  assert_failure
+  assert_output --partial "must be run as root"
+}
