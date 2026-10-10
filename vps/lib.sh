@@ -125,3 +125,43 @@ has_server_keys() {
   local env_file="$1"
   grep -q "^ORGANIC_MASTER_KEY=." "$env_file" 2>/dev/null
 }
+
+ask() {
+  local question="$1" default="${2:-}"
+  local answer
+  printf "%s%s: " "$question" "${default:+ [$default]}" >&2
+  read -r answer || return 1
+  echo "${answer:-$default}"
+}
+
+ask_until_valid() {
+  local question="$1" validator="$2" default="${3:-}"
+  local answer
+  while answer="$(ask "$question" "$default")"; do
+    if "$validator" "$answer"; then
+      echo "$answer"
+      return 0
+    fi
+    echo "Invalid value, please try again." >&2
+  done
+  return 1
+}
+
+is_positive_integer() {
+  local value="$1"
+  [[ "$value" =~ ^[1-9][0-9]*$ ]]
+}
+
+is_not_empty() {
+  local value="$1"
+  [[ -n "$value" ]]
+}
+
+wait_for_word() {
+  local expected_word="$1"
+  local answer
+  while answer="$(ask "Type '$expected_word' to continue")"; do
+    [[ "$answer" == "$expected_word" ]] && return 0
+  done
+  return 1
+}
