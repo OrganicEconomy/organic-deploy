@@ -215,11 +215,6 @@ domain_points_here() {
 
 install_caddy() {
   announce "Installing Caddy (automatic HTTPS)"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' |
-    gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
-  apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y caddy
   render_caddyfile "$DOMAIN" > "$CADDYFILE"
   systemctl reload caddy
