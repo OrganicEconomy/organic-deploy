@@ -8,7 +8,9 @@ setup() {
 }
 
 @test "should reject a name starting with a digit or containing uppercase" {
-  run is_valid_username 1Gus
+  run is_valid_username 1gus
+  assert_failure
+  run is_valid_username Gus
   assert_failure
 }
 
