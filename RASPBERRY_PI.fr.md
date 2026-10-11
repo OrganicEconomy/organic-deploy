@@ -130,9 +130,13 @@ sudo systemctl status organic-webserver     # doit afficher active (running)
 journalctl -u organic-webserver -f          # logs en direct
 ```
 
-## 8. Un nom d'hôte public (DuckDNS)
+## 8. Un nom d'hôte public
 
-Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sous-domaine gratuit (`<nom>.duckdns.org`) avec une mise à jour d'IP dynamique intégrée.
+Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sous-domaine gratuit (`<nom>.duckdns.org`) avec une mise à jour d'IP dynamique intégrée — voir l'option A ci-dessous.
+
+Tu as déjà un nom de domaine ? Un sous-domaine marche pareil, et évite un vrai écueil des domaines en dynamic DNS tiers : certains opérateurs mobiles et VPN filtrent `*.duckdns.org` et équivalents par catégorie (classés "dynamic DNS" dans des listes de threat-intel), ce qui peut bloquer silencieusement des visiteurs sur ces réseaux. Si ton domaine est chez OVH, voir l'option B.
+
+### Option A : DuckDNS
 
 1. Se connecter sur [duckdns.org](https://www.duckdns.org) et réserver un sous-domaine (ex. `ma-monnaie-de-quartier` → `ma-monnaie-de-quartier.duckdns.org`). Noter le **token** affiché sur la page du compte.
 2. Sur le Pi, depuis ton propre compte (pas `organic`) — pas besoin de `sudo` ici, `~/duckdns` est dans ton propre home :
@@ -152,6 +156,36 @@ Pas de nom de domaine à toi ? [DuckDNS](https://www.duckdns.org) fournit un sou
    */5 * * * * ~/duckdns/duck.sh >/dev/null 2>&1
    ```
    (Un timer systemd est plus robuste que cron si tu veux aller plus loin, mais cron est largement suffisant ici.)
+
+### Option B : un sous-domaine de ton propre nom de domaine (OVH DynHost)
+
+Si la zone DNS de ton domaine est gérée chez [OVH](https://www.ovh.com), **DynHost** est le mécanisme d'OVH pour exactement ce cas (une IP résidentielle qui change) — pas besoin de la pleine API signée d'OVH, juste un appel HTTP de mise à jour dans le même esprit que DuckDNS.
+
+1. Dans le manager OVH, sur la zone DNS de ton domaine, créer un enregistrement **DynHost** pour le sous-domaine voulu (ex. `test.ton-domaine.fr`).
+2. Toujours dans le manager OVH, créer un **accès DynHost** dédié (son propre login/mot de passe, distinct de tes identifiants OVH principaux), limité à cet enregistrement.
+3. Sur le Pi, même principe que le script de l'option A. Adapter [ovh-ddns.sh.example](ovh-ddns.sh.example) avec ton login/mot de passe DynHost et ton sous-domaine, puis le copier vers `~/ovh-ddns/ovh-ddns.sh` :
+   ```bash
+   mkdir ~/ovh-ddns && cd ~/ovh-ddns
+   chmod 700 ovh-ddns.sh
+   ./ovh-ddns.sh
+   cat ovh-ddns.log   # doit afficher "OK"
+   ```
+4. Même planification cron que l'option A, pointée vers `ovh-ddns.sh` à la place. Les deux scripts/entrées cron peuvent tourner en parallèle — utile en cours de migration depuis DuckDNS, le temps de garder les deux noms d'hôte actifs.
+
+**En IPv6 seule (CGNAT, étape 9 ci-dessous)** : DynHost ne met à jour que les A — jamais les AAAA, quelle que soit la façon de l'appeler. Garder un AAAA à jour demande la pleine API signée d'OVH :
+
+1. Ouvrir cette URL en étant connecté à OVH (rien à remplacer — la chaîne de requête est elle-même la demande de droits GET/PUT/POST sur la zone DNS) :
+   ```
+   https://eu.api.ovh.com/createToken/?GET=/domain/zone/*&PUT=/domain/zone/*&POST=/domain/zone/*
+   ```
+   Donner un nom/une description au script, confirmer les droits, valider — cette seule page renvoie les trois identifiants d'un coup : **Application Key**, **Application Secret**, et **Consumer Key**. Pas d'étape séparée de "création d'application".
+2. Remplir [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) avec ces trois clés plus ta zone/sous-domaine, et le copier vers `~/ovh-ddns/ovh-ipv6-ddns.mjs` sur le Pi. Ne nécessite que les modules natifs de Node — rien à installer via `npm`.
+3. Cron, même cadence de 5 minutes :
+   ```
+   */5 * * * * /usr/bin/node ~/ovh-ddns/ovh-ipv6-ddns.mjs >> ~/ovh-ddns/ovh-ddns.log 2>&1
+   ```
+
+(Si ton compte OVH n'est pas sur l'endpoint EU, remplacer `eu.api.ovh.com` par `ca.api.ovh.com` ou l'équivalent US, dans le script comme dans les URL `createApp`/`createToken`.)
 
 ## 9. Redirection de port
 
@@ -182,6 +216,7 @@ Deux issues possibles :
      ./duck.sh && cat duck.log   # doit afficher "OK"
      ```
      (le même cron de l'étape 8 garde ça à jour — rien à changer là-bas)
+   - **DynHost OVH (option B) ne peut rien faire ici** — il ne met à jour que les A, jamais les AAAA, quelle que soit la façon de l'appeler. Pour un domaine OVH en IPv6 seule, utiliser [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) à la place (l'API complète signée d'OVH, détaillée dans l'option B ci-dessus) pour garder un enregistrement AAAA à jour.
    - Caddy (étape suivante) n'a rien à changer — il écoute déjà sur les deux familles d'adresses par défaut.
 
 ## 10. Caddy (TLS automatique)
@@ -200,6 +235,20 @@ Adapter [Caddyfile.example](Caddyfile.example) avec ton vrai nom d'hôte et le c
     reverse_proxy 127.0.0.1:8080
 }
 ```
+
+Deux noms d'hôte en même temps (ex. migration de DuckDNS vers ton propre domaine, en gardant les deux actifs un moment) ? Ajouter un bloc de site par nom d'hôte, même backend :
+
+```
+<ton-nom>.duckdns.org {
+    reverse_proxy 127.0.0.1:8080
+}
+
+<ton-sous-domaine>.ton-domaine.fr {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
+Caddy demande et renouvelle un certificat Let's Encrypt séparé pour chaque nom d'hôte, automatiquement — rien d'autre à configurer.
 
 (`127.0.0.1` plutôt que `localhost` — sur un système dual-stack, `localhost` peut se résoudre en `::1` en premier, et si Node n'écoute pas aussi sur le loopback IPv6, le proxy échoue avec un `connection refused` déroutant, alors que tout le reste fonctionne.)
 
@@ -224,7 +273,7 @@ Ajouter une rotation simple (garder les N derniers jours) pour que les sauvegard
 Depuis une machine hors de ton LAN (un téléphone en 4G convient bien, pour être sûr de sortir vraiment par internet) :
 
 ```bash
-E2E_BASE_URL=https://<ton-nom>.duckdns.org npm run e2e
+E2E_BASE_URL=https://<ton-nom-d-hote> npm run e2e
 ```
 
 (même scénario que [la vérification du déploiement docker](README.md#verifying-a-deployment) — genèse, création de monnaie quotidienne, un paiement en ligne, un billet papier, et les deux rejets de fraude.)
