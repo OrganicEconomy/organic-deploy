@@ -222,10 +222,15 @@ Deux issues possibles :
 ## 10. Caddy (TLS automatique)
 
 ```bash
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update && sudo apt install caddy
+sudo apt install -y caddy
+```
+
+C'est le paquet des dépôts Debian eux-mêmes (2.6.2, maintenu à jour par l'équipe sécurité Debian) : largement suffisant pour un reverse proxy avec HTTPS automatique, et sans dépôt tiers dont dépendre. Le dépôt apt officiel de Caddy, hébergé chez Cloudsmith, répond `402 Payment Required` depuis octobre 2026.
+
+Tu avais ajouté ce dépôt Cloudsmith en suivant une ancienne version de ce guide ? Retire-le, sinon chaque `apt update` échouera :
+
+```bash
+sudo rm -f /etc/apt/sources.list.d/caddy-stable.list /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 ```
 
 Adapter [Caddyfile.example](Caddyfile.example) avec ton vrai nom d'hôte et le copier vers `/etc/caddy/Caddyfile` :
