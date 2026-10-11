@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+// Keeps an AAAA record pointed at this Pi's current global IPv6 address.
+//
+// OVH's DynHost (see ovh-ddns.sh.example) only updates A records — no AAAA
+// support — so a CGNAT/IPv6-only connection (e.g. SFR/Red by SFR, see
+// RASPBERRY_PI.md §9) needs OVH's full signed API instead. See RASPBERRY_PI.md
+// §8, Option B, for how to create the Application and Consumer Key this needs.
+//
+// Needs only Node's own builtins (fetch, crypto) — nothing to `npm install`.
+// Run on a cron schedule, e.g. every 5 minutes:
+//   */5 * * * * /usr/bin/node ~/ovh-ddns/ovh-ipv6-ddns.mjs >> ~/ovh-ddns/ovh-ddns.log 2>&1
+
+import { createHash } from 'node:crypto';
+import { execSync } from 'node:child_process';
+
+const APP_KEY = '<ovh-app-key>';
+const APP_SECRET = '<ovh-app-secret>';
+const CONSUMER_KEY = '<ovh-consumer-key>';
+const ENDPOINT = 'https://eu.api.ovh.com/1.0'; // ca.api.ovh.com / api.us.ovhcloud.com for non-EU accounts
+const ZONE = '<your-domain>.fr';
+const SUBDOMAIN = '<your-subdomain>'; // e.g. "test" for test.<your-domain>.fr
+
+let cachedTimeDelta;
+
+async function ovhTimeDelta() {
+  if (cachedTimeDelta !== undefined) return cachedTimeDelta;
+  const serverTime = await (await fetch(`${ENDPOINT}/auth/time`)).json();
+  cachedTimeDelta = serverTime - Math.round(Date.now() / 1000);
+  return cachedTimeDelta;
+}
+
+async function ovhRequest(method, path, body) {
+  const bodyStr = body ? JSON.stringify(body) : '';
+  const timestamp = Math.round(Date.now() / 1000) + (await ovhTimeDelta());
+  const url = `${ENDPOINT}${path}`;
+  const toSign = [APP_SECRET, CONSUMER_KEY, method, url, bodyStr, timestamp].join('+');
+  const signature = '$1$' + createHash('sha1').update(toSign).digest('hex');
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'X-Ovh-Application': APP_KEY,
+      'X-Ovh-Timestamp': String(timestamp),
+      'X-Ovh-Signature': signature,
+      'X-Ovh-Consumer': CONSUMER_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: bodyStr || undefined,
+  });
+  if (!res.ok) {
+    throw new Error(`OVH API ${method} ${path} -> ${res.status}: ${await res.text()}`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function currentGlobalIPv6() {
+  const line = execSync('ip -6 addr show eth0')
+    .toString()
+    .split('\n')
+    .find((l) => l.includes('scope global'));
+  if (!line) throw new Error('No global IPv6 address found on eth0 (check `ip -6 addr show eth0`)');
+  return line.trim().split(/\s+/)[1].split('/')[0];
+}
+
+async function main() {
+  const ip = currentGlobalIPv6();
+  const recordIds = await ovhRequest(
+    'GET',
+    `/domain/zone/${ZONE}/record?fieldType=AAAA&subDomain=${SUBDOMAIN}`,
+  );
+
+  if (recordIds.length === 0) {
+    await ovhRequest('POST', `/domain/zone/${ZONE}/record`, {
+      fieldType: 'AAAA',
+      subDomain: SUBDOMAIN,
+      target: ip,
+      ttl: 60,
+    });
+    console.log(`${new Date().toISOString()} created AAAA ${SUBDOMAIN}.${ZONE} -> ${ip}`);
+  } else {
+    const record = await ovhRequest('GET', `/domain/zone/${ZONE}/record/${recordIds[0]}`);
+    if (record.target === ip) {
+      console.log(`${new Date().toISOString()} unchanged (${ip})`);
+      return;
+    }
+    await ovhRequest('PUT', `/domain/zone/${ZONE}/record/${recordIds[0]}`, { target: ip });
+    console.log(`${new Date().toISOString()} updated AAAA ${SUBDOMAIN}.${ZONE} -> ${ip}`);
+  }
+
+  await ovhRequest('POST', `/domain/zone/${ZONE}/refresh`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

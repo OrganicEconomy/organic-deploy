@@ -130,9 +130,13 @@ sudo systemctl status organic-webserver     # should read active (running)
 journalctl -u organic-webserver -f          # live logs
 ```
 
-## 8. A public hostname (DuckDNS)
+## 8. A public hostname
 
-No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain (`<name>.duckdns.org`) with a built-in dynamic-IP updater.
+No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain (`<name>.duckdns.org`) with a built-in dynamic-IP updater — see Option A below.
+
+Already own a domain? A subdomain of it works the same way and avoids a real pitfall of third-party dynamic-DNS domains: some mobile carriers and VPNs filter `*.duckdns.org` and similar by category (flagged as dynamic DNS in threat-intel lists), which can silently block visitors on those networks. If your domain is with OVH, see Option B.
+
+### Option A: DuckDNS
 
 1. Sign in on [duckdns.org](https://www.duckdns.org) and reserve a subdomain (e.g. `my-neighborhood-currency` → `my-neighborhood-currency.duckdns.org`). Note the **token** shown on your account page.
 2. On the Pi, in your own (non-`organic`) account — no `sudo` needed here, `~/duckdns` is your own home directory:
@@ -152,6 +156,36 @@ No domain of your own? [DuckDNS](https://www.duckdns.org) gives a free subdomain
    */5 * * * * ~/duckdns/duck.sh >/dev/null 2>&1
    ```
    (A systemd timer is more robust than cron if you want to go further, but cron is plenty reliable for this.)
+
+### Option B: a subdomain of your own domain (OVH DynHost)
+
+If your domain's DNS zone is managed at [OVH](https://www.ovh.com), **DynHost** is OVH's own mechanism for exactly this case (a residential IP that changes) — no need for OVH's full signed API, just an HTTP update call in the same spirit as DuckDNS's.
+
+1. In the OVH manager, on your domain's DNS zone, create a **DynHost** record for the subdomain you want (e.g. `test.your-domain.fr`).
+2. Still in the OVH manager, create a dedicated **DynHost access** (its own login/password, separate from your main OVH account credentials) scoped to that one record.
+3. On the Pi, same shape as Option A's script. Adapt [ovh-ddns.sh.example](ovh-ddns.sh.example) with your DynHost login/password and subdomain, and copy it to `~/ovh-ddns/ovh-ddns.sh`:
+   ```bash
+   mkdir ~/ovh-ddns && cd ~/ovh-ddns
+   chmod 700 ovh-ddns.sh
+   ./ovh-ddns.sh
+   cat ovh-ddns.log   # should print "OK"
+   ```
+4. Same cron schedule as Option A, pointed at `ovh-ddns.sh` instead. The two scripts/cron entries can run side by side — useful if you're migrating from DuckDNS and want both hostnames live during the transition.
+
+**On IPv6-only (CGNAT, step 9 below)**: DynHost only ever updates A records — never AAAA, regardless of how it's called. Keeping an AAAA record current instead needs OVH's full signed API:
+
+1. Open this URL while logged in to OVH (no placeholder to fill in — the query string itself requests GET/PUT/POST rights on the DNS zone):
+   ```
+   https://eu.api.ovh.com/createToken/?GET=/domain/zone/*&PUT=/domain/zone/*&POST=/domain/zone/*
+   ```
+   Give the script a name/description, confirm the rights, validate — this one page hands back all three credentials at once: **Application Key**, **Application Secret**, and **Consumer Key**. No separate "create an application" step.
+2. Fill in [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) with the three keys above plus your zone/subdomain, and copy it to `~/ovh-ddns/ovh-ipv6-ddns.mjs` on the Pi. Needs only Node's own builtins — nothing to `npm install`.
+3. Cron, same 5-minute cadence:
+   ```
+   */5 * * * * /usr/bin/node ~/ovh-ddns/ovh-ipv6-ddns.mjs >> ~/ovh-ddns/ovh-ddns.log 2>&1
+   ```
+
+(If your OVH account isn't on the EU endpoint, swap `eu.api.ovh.com` for `ca.api.ovh.com` or the US equivalent in both the script and the `createApp`/`createToken` URLs.)
 
 ## 9. Port forwarding
 
@@ -182,6 +216,7 @@ Two ways out:
      ./duck.sh && cat duck.log   # should print "OK"
      ```
      (the same cron entry from step 8 keeps this current — no change needed there)
+   - **OVH DynHost (Option B) can't help here** — it only updates A records, never AAAA, no matter how the request is made. For an OVH domain on IPv6-only, use [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) instead (OVH's full signed API, covered in Option B above) to keep an AAAA record current.
    - Caddy (next step) needs no changes — it listens on both address families by default.
 
 ## 10. Caddy (automatic TLS)
@@ -200,6 +235,20 @@ Adapt [Caddyfile.example](Caddyfile.example) with your real hostname and copy it
     reverse_proxy 127.0.0.1:8080
 }
 ```
+
+Running two hostnames at once (e.g. migrating from DuckDNS to your own domain and keeping both live for a while)? Add one site block per hostname, same backend:
+
+```
+<your-name>.duckdns.org {
+    reverse_proxy 127.0.0.1:8080
+}
+
+<your-subdomain>.your-domain.fr {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
+Caddy requests and renews a separate Let's Encrypt certificate per hostname automatically — no extra config needed.
 
 (`127.0.0.1` rather than `localhost` — on a dual-stack system `localhost` can resolve to `::1` first, and if Node isn't listening on the IPv6 loopback too, the proxy fails with a confusing `connection refused` even though everything else is working.)
 
@@ -224,7 +273,7 @@ Add a simple rotation (keep the last N days) so backups don't fill the disk. Lon
 From a machine outside your LAN (phone on mobile data works well, to make sure you're really going out over the internet):
 
 ```bash
-E2E_BASE_URL=https://<your-name>.duckdns.org npm run e2e
+E2E_BASE_URL=https://<your-hostname> npm run e2e
 ```
 
 (same scenario as [the docker deployment's verification](README.md#verifying-a-deployment) — genesis, daily money creation, an online payment, a paper bill, and the two fraud rejections.)
