@@ -227,12 +227,6 @@ sudo apt install -y caddy
 
 C'est le paquet des dépôts Debian eux-mêmes (2.6.2, maintenu à jour par l'équipe sécurité Debian) : largement suffisant pour un reverse proxy avec HTTPS automatique, et sans dépôt tiers dont dépendre. Le dépôt apt officiel de Caddy, hébergé chez Cloudsmith, répond `402 Payment Required` depuis octobre 2026.
 
-Tu avais ajouté ce dépôt Cloudsmith en suivant une ancienne version de ce guide ? Retire-le, sinon chaque `apt update` échouera :
-
-```bash
-sudo rm -f /etc/apt/sources.list.d/caddy-stable.list /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-```
-
 Adapter [Caddyfile.example](Caddyfile.example) avec ton vrai nom d'hôte et le copier vers `/etc/caddy/Caddyfile` :
 
 ```
