@@ -14,8 +14,8 @@ services:
     depends_on:
       - db
     build:
-      context: ../organic-webserver/organic-webserver
-      dockerfile: ../../organic-deploy/Dockerfile
+      context: ../../organic-webserver/organic-webserver
+      dockerfile: ../../organic-deploy/docker/Dockerfile
     restart: unless-stopped
     env_file: ./.env
     ports:

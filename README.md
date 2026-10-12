@@ -17,7 +17,7 @@ ORGANIC_SECRET_KEY=<64-hex-secret-key> ORGANIC_MASTER_KEY=<a-long-random-passphr
 
 Data lands in `./data/organic.sqlite`. Back it up with `cp`.
 
-**TLS**: put [Caddy](https://caddyserver.com) in front rather than terminating HTTPS in Node — it obtains and renews Let's Encrypt certificates by itself. See [Caddyfile.example](Caddyfile.example):
+**TLS**: put [Caddy](https://caddyserver.com) in front rather than terminating HTTPS in Node — it obtains and renews Let's Encrypt certificates by itself. See [home/Caddyfile.example](home/Caddyfile.example):
 
 ```
 my-server.example.org {
@@ -27,9 +27,9 @@ my-server.example.org {
 
 (`127.0.0.1` rather than `localhost` — on a dual-stack system, `localhost` can resolve to `::1` first, and if Node isn't listening on the IPv6 loopback too, Caddy's proxy fails with a confusing `connection refused`.)
 
-**On a VPS?** `deploy-vps.sh` does all of this interactively on a fresh Debian VPS. See [VPS.md](VPS.md) (or [in French](VPS.fr.md)).
+**On a VPS?** `vps/deploy.sh` does all of this interactively on a fresh Debian VPS. See [vps/README.md](vps/README.md) (or [in French](vps/README.fr.md)).
 
-**Running this from home?** See [RASPBERRY_PI.md](RASPBERRY_PI.md) (or [in French](RASPBERRY_PI.fr.md)) for a full, reproducible walkthrough — OS flashing, firewall, systemd service, DuckDNS, port forwarding, and Caddy, start to finish.
+**Running this from home?** See [home/README.md](home/README.md) (or [in French](home/README.fr.md)) for a full, reproducible walkthrough — OS flashing, firewall, systemd service, DuckDNS, port forwarding, and Caddy, start to finish.
 
 ## The docker way (bigger hosts, Postgres)
 
@@ -42,6 +42,7 @@ Expected layout — both repositories cloned side by side:
 ```
 
 ```bash
+cd docker
 cp .env.example .env     # then edit it
 docker compose up -d
 ```

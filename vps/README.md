@@ -1,13 +1,13 @@
 # Deploying on a VPS
 
-*[🇫🇷 Version française](VPS.fr.md)*
+*[🇫🇷 Version française](README.fr.md)*
 
-`deploy-vps.sh` sets up a community server on a fresh **Debian** VPS in one interactive run: SQLite, systemd, and Caddy for HTTPS. It follows [RASPBERRY_PI.md](RASPBERRY_PI.md), minus everything a VPS doesn't need: its public IPv4 and IPv6 are fixed, so there's no dynamic DNS, port forwarding or CGNAT to deal with.
+`vps/deploy.sh` sets up a community server on a fresh **Debian** VPS in one interactive run: SQLite, systemd, and Caddy for HTTPS. It follows [the home guide](../home/README.md), minus everything a VPS doesn't need: its public IPv4 and IPv6 are fixed, so there's no dynamic DNS, port forwarding or CGNAT to deal with.
 
 ## Before you start
 
 - A **Debian 12 or 13** VPS, and its root (or sudo) access from your hosting provider.
-- A **domain or subdomain** whose DNS zone you can edit (e.g. `test.economie-organique.fr` at OVH).
+- A **domain or subdomain** whose DNS zone you can edit (e.g. `my-server.example.org` at OVH).
 - An **SSH key pair** on your own computer. If you don't have one yet: `ssh-keygen -t ed25519`. You'll be asked to paste the public part, which you can display with:
   - macOS/Linux: `cat ~/.ssh/id_ed25519.pub`
   - Windows (PowerShell): `type $env:USERPROFILE\.ssh\id_ed25519.pub`
@@ -20,7 +20,7 @@ Connect to the VPS with the access your provider gave you, then:
 ```bash
 sudo apt update && sudo apt install -y git
 sudo git clone https://github.com/OrganicEconomy/organic-deploy.git /opt/organic-deploy
-sudo bash /opt/organic-deploy/deploy-vps.sh
+sudo bash /opt/organic-deploy/vps/deploy.sh
 ```
 
 The script first asks for everything it needs: admin username, SSH public key, domain, server name, extra CORS origins, and how many days of backups to keep. It shows a summary and waits for `yes`, then installs step by step.
@@ -48,7 +48,7 @@ Also try the server from a network without IPv6 (a VPN, for instance): it must a
 ```bash
 ssh <admin>@<your-domain>
 sudo git -C /opt/organic-deploy pull
-sudo bash /opt/organic-deploy/deploy-vps.sh update
+sudo bash /opt/organic-deploy/vps/deploy.sh update
 ```
 
 `update` backs up the database, pulls the latest server code, installs its dependencies, restarts the service and checks that it answers.

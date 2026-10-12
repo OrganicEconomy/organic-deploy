@@ -1,8 +1,8 @@
 # Self-hosting on a Raspberry Pi
 
-*[🇫🇷 Version française](RASPBERRY_PI.fr.md)*
+*[🇫🇷 Version française](README.fr.md)*
 
-A worked, reproducible version of ["the simple way"](README.md#the-simple-way-recommended-for-community-servers) for a community server run from home: SQLite, no Docker, Caddy in front for TLS. A neighborhood-scale server has a tiny load — a Raspberry Pi handles it comfortably.
+A worked, reproducible version of ["the simple way"](../README.md#the-simple-way-recommended-for-community-servers) for a community server run from home: SQLite, no Docker, Caddy in front for TLS. A neighborhood-scale server has a tiny load — a Raspberry Pi handles it comfortably.
 
 **Hardware**: any Raspberry Pi 3 or later (64-bit capable, ARMv8+). The original Pi 1 (Model A/B, 2012) won't work — it's ARMv6, which current Node.js releases no longer support.
 
@@ -163,7 +163,7 @@ If your domain's DNS zone is managed at [OVH](https://www.ovh.com), **DynHost** 
 
 1. In the OVH manager, on your domain's DNS zone, create a **DynHost** record for the subdomain you want (e.g. `test.your-domain.fr`).
 2. Still in the OVH manager, create a dedicated **DynHost access** (its own login/password, separate from your main OVH account credentials) scoped to that one record.
-3. On the Pi, same shape as Option A's script. Adapt [ovh-ddns.sh.example](ovh-ddns.sh.example) with your DynHost login/password and subdomain, and copy it to `~/ovh-ddns/ovh-ddns.sh`:
+3. On the Pi, same shape as Option A's script. Adapt [ddns/ovh-dynhost.sh.example](ddns/ovh-dynhost.sh.example) with your DynHost login/password and subdomain, and copy it to `~/ovh-ddns/ovh-ddns.sh`:
    ```bash
    mkdir ~/ovh-ddns && cd ~/ovh-ddns
    chmod 700 ovh-ddns.sh
@@ -179,7 +179,7 @@ If your domain's DNS zone is managed at [OVH](https://www.ovh.com), **DynHost** 
    https://eu.api.ovh.com/createToken/?GET=/domain/zone/*&PUT=/domain/zone/*&POST=/domain/zone/*
    ```
    Give the script a name/description, confirm the rights, validate — this one page hands back all three credentials at once: **Application Key**, **Application Secret**, and **Consumer Key**. No separate "create an application" step.
-2. Fill in [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) with the three keys above plus your zone/subdomain, and copy it to `~/ovh-ddns/ovh-ipv6-ddns.mjs` on the Pi. Needs only Node's own builtins — nothing to `npm install`.
+2. Fill in [ddns/ovh-ipv6.mjs.example](ddns/ovh-ipv6.mjs.example) with the three keys above plus your zone/subdomain, and copy it to `~/ovh-ddns/ovh-ipv6-ddns.mjs` on the Pi. Needs only Node's own builtins — nothing to `npm install`.
 3. Cron, same 5-minute cadence:
    ```
    */5 * * * * /usr/bin/node ~/ovh-ddns/ovh-ipv6-ddns.mjs >> ~/ovh-ddns/ovh-ddns.log 2>&1
@@ -216,7 +216,7 @@ Two ways out:
      ./duck.sh && cat duck.log   # should print "OK"
      ```
      (the same cron entry from step 8 keeps this current — no change needed there)
-   - **OVH DynHost (Option B) can't help here** — it only updates A records, never AAAA, no matter how the request is made. For an OVH domain on IPv6-only, use [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) instead (OVH's full signed API, covered in Option B above) to keep an AAAA record current.
+   - **OVH DynHost (Option B) can't help here** — it only updates A records, never AAAA, no matter how the request is made. For an OVH domain on IPv6-only, use [ddns/ovh-ipv6.mjs.example](ddns/ovh-ipv6.mjs.example) instead (OVH's full signed API, covered in Option B above) to keep an AAAA record current.
    - Caddy (next step) needs no changes — it listens on both address families by default.
 
 ## 10. Caddy (automatic TLS)
@@ -275,7 +275,7 @@ From a machine outside your LAN (phone on mobile data works well, to make sure y
 E2E_BASE_URL=https://<your-hostname> npm run e2e
 ```
 
-(same scenario as [the docker deployment's verification](README.md#verifying-a-deployment) — genesis, daily money creation, an online payment, a paper bill, and the two fraud rejections.)
+(same scenario as [the docker deployment's verification](../README.md#verifying-a-deployment) — genesis, daily money creation, an online payment, a paper bill, and the two fraud rejections.)
 
 **If you went the IPv6-only route** (step 9) and this hangs/times out from a Windows machine that otherwise looks fine, check whether IPv6 is actually enabled on its network adapter before suspecting the server — it's sometimes switched off by default or by an old tweak, even when the ISP box itself has working IPv6:
 ```powershell

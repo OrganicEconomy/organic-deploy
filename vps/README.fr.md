@@ -1,13 +1,13 @@
 # Déployer sur un VPS
 
-*[🇬🇧 English version](VPS.md)*
+*[🇬🇧 English version](README.md)*
 
-`deploy-vps.sh` installe un serveur communautaire sur un VPS **Debian** neuf, en une seule exécution interactive : SQLite, systemd, et Caddy pour le HTTPS. Il reprend [RASPBERRY_PI.fr.md](RASPBERRY_PI.fr.md), sans tout ce dont un VPS n'a pas besoin : ses IPv4 et IPv6 publiques sont fixes, donc pas de DNS dynamique, de redirection de port ni de CGNAT à gérer.
+`vps/deploy.sh` installe un serveur communautaire sur un VPS **Debian** neuf, en une seule exécution interactive : SQLite, systemd, et Caddy pour le HTTPS. Il reprend [le guide maison](../home/README.fr.md), sans tout ce dont un VPS n'a pas besoin : ses IPv4 et IPv6 publiques sont fixes, donc pas de DNS dynamique, de redirection de port ni de CGNAT à gérer.
 
 ## Avant de commencer
 
 - Un VPS **Debian 12 ou 13**, avec l'accès root (ou sudo) fourni par ton hébergeur.
-- Un **domaine ou sous-domaine** dont tu peux modifier la zone DNS (ex. `test.economie-organique.fr` chez OVH).
+- Un **domaine ou sous-domaine** dont tu peux modifier la zone DNS (ex. `my-server.example.org` chez OVH).
 - Une **paire de clés SSH** sur ton ordinateur. Si tu n'en as pas encore : `ssh-keygen -t ed25519`. Le script te demandera d'en coller la partie publique, que tu peux afficher avec :
   - macOS/Linux : `cat ~/.ssh/id_ed25519.pub`
   - Windows (PowerShell) : `type $env:USERPROFILE\.ssh\id_ed25519.pub`
@@ -20,7 +20,7 @@ Se connecter au VPS avec l'accès fourni par l'hébergeur, puis :
 ```bash
 sudo apt update && sudo apt install -y git
 sudo git clone https://github.com/OrganicEconomy/organic-deploy.git /opt/organic-deploy
-sudo bash /opt/organic-deploy/deploy-vps.sh
+sudo bash /opt/organic-deploy/vps/deploy.sh
 ```
 
 Le script commence par demander tout ce dont il a besoin : nom de l'admin, clé publique SSH, domaine, nom du serveur, origines CORS en plus, et nombre de jours de sauvegardes à garder. Il affiche un récapitulatif, attend `yes`, puis installe étape par étape.
@@ -48,7 +48,7 @@ Essaie aussi le serveur depuis un réseau sans IPv6 (un VPN, par exemple) : il d
 ```bash
 ssh <admin>@<ton-domaine>
 sudo git -C /opt/organic-deploy pull
-sudo bash /opt/organic-deploy/deploy-vps.sh update
+sudo bash /opt/organic-deploy/vps/deploy.sh update
 ```
 
 `update` sauvegarde la base, récupère le dernier code du serveur, installe ses dépendances, redémarre le service et vérifie qu'il répond.

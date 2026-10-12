@@ -16,7 +16,7 @@ resolve_command() {
 
 print_usage() {
   cat <<'USAGE'
-Usage: sudo bash deploy-vps.sh [command]
+Usage: sudo bash vps/deploy.sh [command]
 
 Commands:
   install   Interactively set up an Organic Economy server on this VPS (default)

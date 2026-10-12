@@ -1,8 +1,8 @@
 # Auto-hébergement sur Raspberry Pi
 
-*[🇬🇧 English version](RASPBERRY_PI.md)*
+*[🇬🇧 English version](README.md)*
 
-Une version concrète et reproductible de [« la voie simple »](README.md#the-simple-way-recommended-for-community-servers) : un serveur communautaire hébergé chez soi — SQLite, pas de Docker, Caddy devant pour le TLS. À l'échelle d'un quartier, la charge est minime — un Raspberry Pi encaisse ça sans problème.
+Une version concrète et reproductible de [« la voie simple »](../README.md#the-simple-way-recommended-for-community-servers) : un serveur communautaire hébergé chez soi — SQLite, pas de Docker, Caddy devant pour le TLS. À l'échelle d'un quartier, la charge est minime — un Raspberry Pi encaisse ça sans problème.
 
 **Matériel** : n'importe quel Raspberry Pi 3 ou plus récent (compatible 64 bits, ARMv8+). Le tout premier Pi (Model A/B, 2012) ne convient pas — il est en ARMv6, que les versions actuelles de Node.js ne supportent plus.
 
@@ -163,7 +163,7 @@ Si la zone DNS de ton domaine est gérée chez [OVH](https://www.ovh.com), **Dyn
 
 1. Dans le manager OVH, sur la zone DNS de ton domaine, créer un enregistrement **DynHost** pour le sous-domaine voulu (ex. `test.ton-domaine.fr`).
 2. Toujours dans le manager OVH, créer un **accès DynHost** dédié (son propre login/mot de passe, distinct de tes identifiants OVH principaux), limité à cet enregistrement.
-3. Sur le Pi, même principe que le script de l'option A. Adapter [ovh-ddns.sh.example](ovh-ddns.sh.example) avec ton login/mot de passe DynHost et ton sous-domaine, puis le copier vers `~/ovh-ddns/ovh-ddns.sh` :
+3. Sur le Pi, même principe que le script de l'option A. Adapter [ddns/ovh-dynhost.sh.example](ddns/ovh-dynhost.sh.example) avec ton login/mot de passe DynHost et ton sous-domaine, puis le copier vers `~/ovh-ddns/ovh-ddns.sh` :
    ```bash
    mkdir ~/ovh-ddns && cd ~/ovh-ddns
    chmod 700 ovh-ddns.sh
@@ -179,7 +179,7 @@ Si la zone DNS de ton domaine est gérée chez [OVH](https://www.ovh.com), **Dyn
    https://eu.api.ovh.com/createToken/?GET=/domain/zone/*&PUT=/domain/zone/*&POST=/domain/zone/*
    ```
    Donner un nom/une description au script, confirmer les droits, valider — cette seule page renvoie les trois identifiants d'un coup : **Application Key**, **Application Secret**, et **Consumer Key**. Pas d'étape séparée de "création d'application".
-2. Remplir [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) avec ces trois clés plus ta zone/sous-domaine, et le copier vers `~/ovh-ddns/ovh-ipv6-ddns.mjs` sur le Pi. Ne nécessite que les modules natifs de Node — rien à installer via `npm`.
+2. Remplir [ddns/ovh-ipv6.mjs.example](ddns/ovh-ipv6.mjs.example) avec ces trois clés plus ta zone/sous-domaine, et le copier vers `~/ovh-ddns/ovh-ipv6-ddns.mjs` sur le Pi. Ne nécessite que les modules natifs de Node — rien à installer via `npm`.
 3. Cron, même cadence de 5 minutes :
    ```
    */5 * * * * /usr/bin/node ~/ovh-ddns/ovh-ipv6-ddns.mjs >> ~/ovh-ddns/ovh-ddns.log 2>&1
@@ -216,7 +216,7 @@ Deux issues possibles :
      ./duck.sh && cat duck.log   # doit afficher "OK"
      ```
      (le même cron de l'étape 8 garde ça à jour — rien à changer là-bas)
-   - **DynHost OVH (option B) ne peut rien faire ici** — il ne met à jour que les A, jamais les AAAA, quelle que soit la façon de l'appeler. Pour un domaine OVH en IPv6 seule, utiliser [ovh-ipv6-ddns.mjs.example](ovh-ipv6-ddns.mjs.example) à la place (l'API complète signée d'OVH, détaillée dans l'option B ci-dessus) pour garder un enregistrement AAAA à jour.
+   - **DynHost OVH (option B) ne peut rien faire ici** — il ne met à jour que les A, jamais les AAAA, quelle que soit la façon de l'appeler. Pour un domaine OVH en IPv6 seule, utiliser [ddns/ovh-ipv6.mjs.example](ddns/ovh-ipv6.mjs.example) à la place (l'API complète signée d'OVH, détaillée dans l'option B ci-dessus) pour garder un enregistrement AAAA à jour.
    - Caddy (étape suivante) n'a rien à changer — il écoute déjà sur les deux familles d'adresses par défaut.
 
 ## 10. Caddy (TLS automatique)
@@ -275,7 +275,7 @@ Depuis une machine hors de ton LAN (un téléphone en 4G convient bien, pour êt
 E2E_BASE_URL=https://<ton-nom-d-hote> npm run e2e
 ```
 
-(même scénario que [la vérification du déploiement docker](README.md#verifying-a-deployment) — genèse, création de monnaie quotidienne, un paiement en ligne, un billet papier, et les deux rejets de fraude.)
+(même scénario que [la vérification du déploiement docker](../README.md#verifying-a-deployment) — genèse, création de monnaie quotidienne, un paiement en ligne, un billet papier, et les deux rejets de fraude.)
 
 **Si tu es parti sur la voie IPv6 uniquement** (étape 9) et que ça reste bloqué/expire depuis une machine Windows qui semble pourtant normale, vérifie d'abord que l'IPv6 est bien activée sur son adaptateur réseau avant de suspecter le serveur — elle est parfois désactivée par défaut ou par une vieille manipulation, même quand la box du FAI a bien l'IPv6 qui fonctionne :
 ```powershell
