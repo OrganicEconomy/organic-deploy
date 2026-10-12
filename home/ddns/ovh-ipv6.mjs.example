@@ -2,9 +2,9 @@
 // Keeps an AAAA record pointed at this Pi's current global IPv6 address.
 //
 // OVH's DynHost (see ovh-dynhost.sh.example) only updates A records — no AAAA
-// support — so a CGNAT/IPv6-only connection (e.g. SFR/Red by SFR, see
-// home/README.md §9) needs OVH's full signed API instead. See home/README.md
-// §8, Option B, for how to create the Application and Consumer Key this needs.
+// support — so a CGNAT/IPv6-only connection (e.g. SFR/Red by SFR) needs
+// OVH's full signed API instead. See home/network.md for how to get the
+// Application Key, Application Secret and Consumer Key this needs.
 //
 // Needs only Node's own builtins (fetch, crypto) — nothing to `npm install`.
 // Run on a cron schedule, e.g. every 5 minutes:
