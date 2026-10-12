@@ -2,8 +2,8 @@
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$DEPLOY_DIR/vps/lib.sh"
-source "$DEPLOY_DIR/vps/steps.sh"
+source "$DEPLOY_DIR/lib.sh"
+source "$DEPLOY_DIR/steps.sh"
 
 install_server() {
   ensure_running_as_root

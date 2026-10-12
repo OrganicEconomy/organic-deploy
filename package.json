@@ -2,7 +2,7 @@
   "name": "organic-deploy",
   "private": true,
   "scripts": {
-    "test": "bats test"
+    "test": "bats vps/test"
   },
   "devDependencies": {
     "bats": "^1.13.0",

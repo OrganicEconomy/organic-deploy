@@ -21,7 +21,7 @@ fail() {
 }
 
 ensure_running_as_root() {
-  [[ "$(id -u)" == 0 ]] || fail "this command must be run as root (try: sudo bash deploy-vps.sh)."
+  [[ "$(id -u)" == 0 ]] || fail "this command must be run as root (try: sudo bash vps/deploy.sh)."
 }
 
 ensure_debian_with_systemd() {
@@ -33,7 +33,7 @@ ask_installation_settings() {
   announce "A few questions before installing"
   ADMIN_USER="$(ask_until_valid "Admin username (your own SSH login, not root)" is_valid_username)"
   ADMIN_PUBLIC_KEY="$(ask_until_valid "Your SSH public key (content of ~/.ssh/id_ed25519.pub)" is_valid_ssh_public_key)"
-  DOMAIN="$(ask_until_valid "Domain name of the server (e.g. test.economie-organique.fr)" is_valid_domain)"
+  DOMAIN="$(ask_until_valid "Domain name of the server (e.g. my-server.example.org)" is_valid_domain)"
   SERVER_NAME="$(ask_until_valid "Server name shown in the app" is_not_empty)"
   CORS_EXTRA_ORIGINS="$(ask "Extra CORS origins, comma-separated (leave empty if unsure)")"
   BACKUP_RETENTION_DAYS="$(ask_until_valid "Days of daily backups to keep" is_positive_integer 14)"
@@ -275,7 +275,7 @@ Installation complete.
   SSH         : ssh $ADMIN_USER@$DOMAIN (root and passwords are disabled)
   Logs        : journalctl -u organic-webserver -f
   Backups     : $BACKUP_DIR (daily at 3am, $BACKUP_RETENTION_DAYS days kept)
-  Update      : sudo bash deploy-vps.sh update
+  Update      : sudo bash vps/deploy.sh update
 
 Check the deployment from your computer, in organic-webserver/organic-webserver:
 

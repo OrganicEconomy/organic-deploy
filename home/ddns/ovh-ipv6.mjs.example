@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Keeps an AAAA record pointed at this Pi's current global IPv6 address.
 //
-// OVH's DynHost (see ovh-ddns.sh.example) only updates A records — no AAAA
+// OVH's DynHost (see ovh-dynhost.sh.example) only updates A records — no AAAA
 // support — so a CGNAT/IPv6-only connection (e.g. SFR/Red by SFR, see
-// RASPBERRY_PI.md §9) needs OVH's full signed API instead. See RASPBERRY_PI.md
+// home/README.md §9) needs OVH's full signed API instead. See home/README.md
 // §8, Option B, for how to create the Application and Consumer Key this needs.
 //
 // Needs only Node's own builtins (fetch, crypto) — nothing to `npm install`.
