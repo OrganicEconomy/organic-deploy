@@ -41,6 +41,8 @@ From your computer, in `organic-webserver/organic-webserver`:
 E2E_BASE_URL=https://<your-domain> npm run e2e
 ```
 
+(see [Verifying a deployment](../README.md#verifying-a-deployment) for what the scenario checks.)
+
 Also try the server from a network without IPv6 (a VPN, for instance): it must answer too.
 
 ## Update the server

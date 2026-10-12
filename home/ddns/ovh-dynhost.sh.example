@@ -1,5 +1,5 @@
 #!/bin/sh
 # OVH DynHost update — same shape as duckdns/duck.sh, for a subdomain whose
-# DNS zone is managed at OVH instead of DuckDNS. See home/README.md §8,
-# Option B, for how to create the DynHost record and access.
+# DNS zone is managed at OVH instead of DuckDNS. See home/network.md for
+# how to create the DynHost record and access.
 echo url="https://<dynhost-login>:<dynhost-password>@www.ovh.com/nic/update?system=dyndns&hostname=<your-subdomain>.<your-domain>" | curl -k -o ~/ovh-ddns/ovh-ddns.log -K -
