@@ -101,6 +101,8 @@ Créer `.env` à la racine du dépôt :
 ORGANIC_SECRET_KEY=<ta clé de 64 caractères hex>
 ORGANIC_MASTER_KEY=<ton autre clé de 64 caractères hex>
 ORGANIC_SERVER_NAME=<le nom affiché de ton serveur>
+NODE_ENV=production
+NODE_LISTEN_HOST=127.0.0.1
 ```
 
 ## 7. Le faire tourner comme service systemd
