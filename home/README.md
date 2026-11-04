@@ -101,6 +101,8 @@ Create `.env` at the repo root:
 ORGANIC_SECRET_KEY=<your 64-hex key>
 ORGANIC_MASTER_KEY=<your other 64-hex key>
 ORGANIC_SERVER_NAME=<your server's display name>
+NODE_ENV=production
+NODE_LISTEN_HOST=127.0.0.1
 ```
 
 ## 7. Run it as a systemd service

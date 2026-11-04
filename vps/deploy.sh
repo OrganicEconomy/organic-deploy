@@ -18,6 +18,7 @@ install_server() {
   install_nodejs
   install_server_code
   write_server_keys
+  apply_server_settings
   install_systemd_service
   wait_for_server_health
   wait_for_dns
@@ -32,6 +33,7 @@ update_server() {
   ensure_debian_with_systemd
   back_up_database
   update_server_code
+  apply_server_settings
   restart_server
   wait_for_server_health
 }

@@ -121,6 +121,16 @@ render_backup_cron() {
   echo "0 3 * * * root $backup_script"
 }
 
+set_env_setting() {
+  local env_file="$1" key="$2" value="$3"
+  local other_settings
+  other_settings="$(grep -v "^$key=" "$env_file" || true)"
+  {
+    [[ -z "$other_settings" ]] || echo "$other_settings"
+    echo "$key=$value"
+  } > "$env_file"
+}
+
 has_server_keys() {
   local env_file="$1"
   grep -q "^ORGANIC_MASTER_KEY=." "$env_file" 2>/dev/null

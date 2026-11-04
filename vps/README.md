@@ -53,7 +53,7 @@ sudo git -C /opt/organic-deploy pull
 sudo bash /opt/organic-deploy/vps/deploy.sh update
 ```
 
-`update` backs up the database, pulls the latest server code, installs its dependencies, restarts the service and checks that it answers.
+`update` backs up the database, pulls the latest server code, installs its dependencies, applies the production settings (`NODE_ENV=production`, `NODE_LISTEN_HOST=127.0.0.1`, the server keys left untouched), restarts the service and checks that it answers.
 
 ## Backups
 

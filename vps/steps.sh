@@ -159,6 +159,12 @@ write_server_keys() {
   show_keys_to_write_down "$secret_key" "$master_key"
 }
 
+apply_server_settings() {
+  announce "Production settings"
+  set_env_setting "$ENV_FILE" NODE_ENV production
+  set_env_setting "$ENV_FILE" NODE_LISTEN_HOST 127.0.0.1
+}
+
 show_keys_to_write_down() {
   cat <<KEYS
 
